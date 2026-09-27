@@ -5,3 +5,4 @@ target/
 *.war
 src/main/resources/db.properties
 .tools/
+src/main/resources/db.properties

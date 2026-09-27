@@ -1,0 +1,94 @@
+[
+  {
+    "missionNo": 1,
+    "stepNo": 1,
+    "instruction": "Create a new directory called \"my-website\" for your project.",
+    "expectedCommands": [
+      "mkdir my-website"
+    ]
+  },
+  {
+    "missionNo": 1,
+    "stepNo": 2,
+    "instruction": "Move into your newly created \"my-website\" project directory.",
+    "expectedCommands": [
+      "cd my-website"
+    ]
+  },
+  {
+    "missionNo": 1,
+    "stepNo": 3,
+    "instruction": "Create your main webpage file named \"index.html\".",
+    "expectedCommands": [
+      "touch index.html"
+    ]
+  },
+  {
+    "missionNo": 1,
+    "stepNo": 4,
+    "instruction": "Create a stylesheet file named \"style.css\".",
+    "expectedCommands": [
+      "touch style.css"
+    ]
+  },
+  {
+    "missionNo": 1,
+    "stepNo": 5,
+    "instruction": "List the files in the directory to verify both files were created.",
+    "expectedCommands": [
+      "ls"
+    ]
+  },
+  {
+    "missionNo": 1,
+    "stepNo": 6,
+    "instruction": "Clear the terminal screen to declutter your workspace before initializing Git.",
+    "expectedCommands": [
+      "clear"
+    ]
+  },
+  {
+    "missionNo": 2,
+    "stepNo": 1,
+    "instruction": "Turn this directory into a Git repository by initializing it.",
+    "expectedCommands": [
+      "git init"
+    ]
+  },
+  {
+    "missionNo": 2,
+    "stepNo": 2,
+    "instruction": "Check the repository status to see which files are untracked.",
+    "expectedCommands": [
+      "git status"
+    ]
+  },
+  {
+    "missionNo": 2,
+    "stepNo": 3,
+    "instruction": "Move all files to the Staging Area so they are ready to be saved.",
+    "expectedCommands": [
+      "git add .",
+      "git add -A",
+      "git add index.html style.css"
+    ]
+  },
+  {
+    "missionNo": 2,
+    "stepNo": 4,
+    "instruction": "Save this state to your Git history with the message \"Initial commit\".",
+    "expectedCommands": [
+      "git commit -m \"Initial commit\"",
+      "git commit -m \"initial commit\""
+    ]
+  },
+  {
+    "missionNo": 2,
+    "stepNo": 5,
+    "instruction": "View your commit history to verify your first snapshot was saved.",
+    "expectedCommands": [
+      "git log",
+      "git log --oneline"
+    ]
+  }
+]

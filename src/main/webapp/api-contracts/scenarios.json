@@ -1,0 +1,335 @@
+[
+  {
+    "id": 1,
+    "title": "I staged a file I didn't mean to.",
+    "theMess": "You ran git add . and accidentally included a massive secret file or credential file in the staging area.",
+    "explanation": "Git stages files to prepare them for the next snapshot. You can safely unstage any file without losing your local hard-drive changes using git restore --staged.",
+    "fixSteps": [
+      "git restore --staged secret.txt"
+    ],
+    "labPrefillState": {
+      "fileSystem": [
+        {
+          "name": "index.html",
+          "status": "tracked_unmodified",
+          "content": "<h1>My Portfolio</h1>"
+        },
+        {
+          "name": "secret.txt",
+          "status": "staged_new",
+          "content": "API_KEY=super_secret_token_12345"
+        }
+      ],
+      "git": {
+        "initialized": true,
+        "stagingArea": [
+          "secret.txt"
+        ],
+        "branches": {
+          "main": "commit-1"
+        },
+        "head": "main",
+        "commits": [
+          {
+            "id": "commit-1",
+            "parent": null,
+            "message": "Initial commit",
+            "files": [
+              "index.html"
+            ]
+          }
+        ],
+        "remote": {
+          "url": "https://github.com/example/repo.git",
+          "branches": {
+            "main": "commit-1"
+          },
+          "aheadBehind": {
+            "ahead": 0,
+            "behind": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": 2,
+    "title": "I messed up my code and want to go back to my last commit.",
+    "theMess": "You tried refactoring, broke working functionality, and haven't staged or committed your changes yet.",
+    "explanation": "When you have not yet staged or committed messy edits, git restore allows you to discard uncommitted working directory changes and revert the file back to the clean version saved in your last commit.",
+    "fixSteps": [
+      "git restore index.html"
+    ],
+    "labPrefillState": {
+      "fileSystem": [
+        {
+          "name": "index.html",
+          "status": "tracked_modified",
+          "content": "<h1>BROKEN SYNTAX ERROR</h1>"
+        },
+        {
+          "name": "style.css",
+          "status": "tracked_unmodified",
+          "content": "body { margin: 0; }"
+        }
+      ],
+      "git": {
+        "initialized": true,
+        "stagingArea": [],
+        "branches": {
+          "main": "commit-1"
+        },
+        "head": "main",
+        "commits": [
+          {
+            "id": "commit-1",
+            "parent": null,
+            "message": "Initial commit",
+            "files": [
+              "index.html",
+              "style.css"
+            ]
+          }
+        ],
+        "remote": {
+          "url": "https://github.com/example/repo.git",
+          "branches": {
+            "main": "commit-1"
+          },
+          "aheadBehind": {
+            "ahead": 0,
+            "behind": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": 3,
+    "title": "I started typing code on main, but meant to make a feature branch.",
+    "theMess": "You forgot to create a new branch before starting to work on a new feature, and you currently have uncommitted edits on main.",
+    "explanation": "As long as you have not committed your changes yet, creating and switching to a new branch will carry your uncommitted working directory modifications along with you safely.",
+    "fixSteps": [
+      "git branch feature-login",
+      "git switch feature-login"
+    ],
+    "labPrefillState": {
+      "fileSystem": [
+        {
+          "name": "login.js",
+          "status": "untracked",
+          "content": "function handleLogin() { console.log('logging in'); }"
+        },
+        {
+          "name": "index.html",
+          "status": "tracked_unmodified",
+          "content": "<h1>App</h1>"
+        }
+      ],
+      "git": {
+        "initialized": true,
+        "stagingArea": [],
+        "branches": {
+          "main": "commit-1"
+        },
+        "head": "main",
+        "commits": [
+          {
+            "id": "commit-1",
+            "parent": null,
+            "message": "Initial commit",
+            "files": [
+              "index.html"
+            ]
+          }
+        ],
+        "remote": {
+          "url": "https://github.com/example/repo.git",
+          "branches": {
+            "main": "commit-1"
+          },
+          "aheadBehind": {
+            "ahead": 0,
+            "behind": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": 4,
+    "title": "I got a Merge Conflict!",
+    "theMess": "You ran git merge and Git halted because both the active branch and target branch modified the exact same line of code in app.js.",
+    "explanation": "Git cannot automatically decide which version of conflicting lines to keep. It inserts conflict markers (<<<<<<<, =======, >>>>>>>) into the file and pauses so you can manually select the correct code, stage the resolution, and commit.",
+    "fixSteps": [
+      "git status",
+      "resolve conflict markers manually",
+      "git add app.js",
+      "git commit -m \"resolved conflict\""
+    ],
+    "labPrefillState": {
+      "fileSystem": [
+        {
+          "name": "app.js",
+          "status": "conflicted",
+          "content": "<<<<<<< HEAD\nconst theme = \"dark\";\n=======\nconst theme = \"light\";\n>>>>>>> feature-theme"
+        }
+      ],
+      "git": {
+        "initialized": true,
+        "stagingArea": [],
+        "branches": {
+          "main": "commit-2",
+          "feature-theme": "commit-3"
+        },
+        "head": "main",
+        "commits": [
+          {
+            "id": "commit-1",
+            "parent": null,
+            "message": "Initial setup",
+            "files": [
+              "app.js"
+            ]
+          },
+          {
+            "id": "commit-2",
+            "parent": "commit-1",
+            "message": "Set dark theme on main",
+            "files": [
+              "app.js"
+            ]
+          },
+          {
+            "id": "commit-3",
+            "parent": "commit-1",
+            "message": "Set light theme on branch",
+            "files": [
+              "app.js"
+            ]
+          }
+        ],
+        "remote": {
+          "url": "https://github.com/example/repo.git",
+          "branches": {
+            "main": "commit-2"
+          },
+          "aheadBehind": {
+            "ahead": 0,
+            "behind": 0
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": 5,
+    "title": "My push was rejected.",
+    "theMess": "You ran git push and Git rejected it because the remote contains new commits that you do not yet have in your local repository.",
+    "explanation": "When a collaborator pushes changes to GitHub while you are working, your branch falls behind. You must fetch and integrate their commits using git pull before Git allows you to push your local snapshots.",
+    "fixSteps": [
+      "git pull",
+      "git push"
+    ],
+    "labPrefillState": {
+      "fileSystem": [
+        {
+          "name": "index.html",
+          "status": "tracked_unmodified",
+          "content": "<h1>Collaborative App</h1>"
+        }
+      ],
+      "git": {
+        "initialized": true,
+        "stagingArea": [],
+        "branches": {
+          "main": "commit-2"
+        },
+        "head": "main",
+        "commits": [
+          {
+            "id": "commit-1",
+            "parent": null,
+            "message": "Initial commit",
+            "files": [
+              "index.html"
+            ]
+          },
+          {
+            "id": "commit-2",
+            "parent": "commit-1",
+            "message": "Update landing page",
+            "files": [
+              "index.html"
+            ]
+          }
+        ],
+        "remote": {
+          "url": "https://github.com/example/repo.git",
+          "branches": {
+            "main": "commit-remote-2"
+          },
+          "aheadBehind": {
+            "ahead": 1,
+            "behind": 1
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": 6,
+    "title": "I am completely lost.",
+    "theMess": "You typed a series of commands, your terminal is flooded with output, and you don't know what files are modified, staged, or committed.",
+    "explanation": "When disorientation strikes, use the developer compass: clear the cluttered terminal screen, run git status to inspect your working directory and staging area, and run git log to inspect recent commit history.",
+    "fixSteps": [
+      "clear",
+      "git status",
+      "git log"
+    ],
+    "labPrefillState": {
+      "fileSystem": [
+        {
+          "name": "index.html",
+          "status": "tracked_modified",
+          "content": "<h1>Work in progress...</h1>"
+        },
+        {
+          "name": "style.css",
+          "status": "staged_new",
+          "content": "body { background: #f4f4f0; }"
+        }
+      ],
+      "git": {
+        "initialized": true,
+        "stagingArea": [
+          "style.css"
+        ],
+        "branches": {
+          "main": "commit-1"
+        },
+        "head": "main",
+        "commits": [
+          {
+            "id": "commit-1",
+            "parent": null,
+            "message": "Initial commit",
+            "files": [
+              "index.html"
+            ]
+          }
+        ],
+        "remote": {
+          "url": "https://github.com/example/repo.git",
+          "branches": {
+            "main": "commit-1"
+          },
+          "aheadBehind": {
+            "ahead": 0,
+            "behind": 0
+          }
+        }
+      }
+    }
+  }
+]

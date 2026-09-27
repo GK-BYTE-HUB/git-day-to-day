@@ -1,0 +1,202 @@
+[
+  {
+    "id": 1,
+    "moduleNo": 1,
+    "name": "mkdir",
+    "tldr": "Creates a new directory (folder) in the current working location.",
+    "syntax": "mkdir <directory_name>\nmkdir -p <path/to/directory>",
+    "example": "mkdir my-website",
+    "usedAfter": null,
+    "usedBefore": "cd"
+  },
+  {
+    "id": 2,
+    "moduleNo": 1,
+    "name": "cd",
+    "tldr": "Changes the current working directory to navigate between folders.",
+    "syntax": "cd <directory_path>\ncd ..\ncd ~",
+    "example": "cd my-website",
+    "usedAfter": "mkdir",
+    "usedBefore": "touch"
+  },
+  {
+    "id": 3,
+    "moduleNo": 1,
+    "name": "touch",
+    "tldr": "Creates a new empty file in the current working directory.",
+    "syntax": "touch <file_name>\ntouch <file1> <file2>",
+    "example": "touch index.html style.css",
+    "usedAfter": "cd",
+    "usedBefore": "ls"
+  },
+  {
+    "id": 4,
+    "moduleNo": 1,
+    "name": "ls",
+    "tldr": "Lists all files and directories inside the current directory.",
+    "syntax": "ls\nls -l\nls -a",
+    "example": "ls -la",
+    "usedAfter": "touch",
+    "usedBefore": "clear"
+  },
+  {
+    "id": 5,
+    "moduleNo": 1,
+    "name": "rm",
+    "tldr": "Deletes specified files permanently from the file system.",
+    "syntax": "rm <file_name>\nrm -rf <directory_name>",
+    "example": "rm style.css",
+    "usedAfter": "ls",
+    "usedBefore": "git status"
+  },
+  {
+    "id": 6,
+    "moduleNo": 1,
+    "name": "clear",
+    "tldr": "Clears all prior output and commands from the active terminal screen.",
+    "syntax": "clear",
+    "example": "clear",
+    "usedAfter": "ls",
+    "usedBefore": "git init"
+  },
+  {
+    "id": 7,
+    "moduleNo": 2,
+    "name": "git init",
+    "tldr": "Initializes a brand new Git repository and creates the hidden .git directory.",
+    "syntax": "git init\ngit init <directory_name>",
+    "example": "git init",
+    "usedAfter": "cd",
+    "usedBefore": "git status"
+  },
+  {
+    "id": 8,
+    "moduleNo": 2,
+    "name": "git status",
+    "tldr": "Displays the state of the working directory and the staging area.",
+    "syntax": "git status\ngit status -s",
+    "example": "git status",
+    "usedAfter": "git init",
+    "usedBefore": "git add"
+  },
+  {
+    "id": 9,
+    "moduleNo": 2,
+    "name": "git add",
+    "tldr": "Stages file modifications from the working directory for the next commit snapshot.",
+    "syntax": "git add <file_name>\ngit add .\ngit add -A",
+    "example": "git add index.html",
+    "usedAfter": "git status",
+    "usedBefore": "git commit"
+  },
+  {
+    "id": 10,
+    "moduleNo": 2,
+    "name": "git commit",
+    "tldr": "Takes a permanent snapshot of staged changes and records it to repository history.",
+    "syntax": "git commit -m \"<message>\"\ngit commit -am \"<message>\"",
+    "example": "git commit -m \"Initial commit\"",
+    "usedAfter": "git add",
+    "usedBefore": "git push"
+  },
+  {
+    "id": 11,
+    "moduleNo": 2,
+    "name": "git log",
+    "tldr": "Displays chronological history of commits with their hashes, authors, and messages.",
+    "syntax": "git log\ngit log --oneline\ngit log -n <limit>",
+    "example": "git log --oneline",
+    "usedAfter": "git commit",
+    "usedBefore": "git branch"
+  },
+  {
+    "id": 12,
+    "moduleNo": 3,
+    "name": "git branch",
+    "tldr": "Lists, creates, or deletes branches to manage parallel development streams.",
+    "syntax": "git branch\ngit branch <branch_name>\ngit branch -d <branch_name>",
+    "example": "git branch dark-mode",
+    "usedAfter": "git commit",
+    "usedBefore": "git switch"
+  },
+  {
+    "id": 13,
+    "moduleNo": 3,
+    "name": "git switch",
+    "tldr": "Switches between branches to work on different features (modern alternative to git checkout).",
+    "syntax": "git switch <branch_name>\ngit switch -c <new_branch_name>",
+    "example": "git switch dark-mode",
+    "usedAfter": "git branch",
+    "usedBefore": "git merge"
+  },
+  {
+    "id": 14,
+    "moduleNo": 3,
+    "name": "git merge",
+    "tldr": "Integrates changes from a target feature branch into your active branch.",
+    "syntax": "git merge <branch_name>\ngit merge --abort",
+    "example": "git merge dark-mode",
+    "usedAfter": "git switch",
+    "usedBefore": "git push"
+  },
+  {
+    "id": 15,
+    "moduleNo": 4,
+    "name": "git clone",
+    "tldr": "Copies an existing remote repository onto your local machine with full commit history.",
+    "syntax": "git clone <repository_url>\ngit clone <repository_url> <directory>",
+    "example": "git clone https://github.com/example/repo.git",
+    "usedAfter": null,
+    "usedBefore": "cd"
+  },
+  {
+    "id": 16,
+    "moduleNo": 4,
+    "name": "git remote",
+    "tldr": "Manages tracked connections to remote repositories hosted on platforms like GitHub.",
+    "syntax": "git remote -v\ngit remote add <name> <url>\ngit remote remove <name>",
+    "example": "git remote add origin https://github.com/example/repo.git",
+    "usedAfter": "git init",
+    "usedBefore": "git push"
+  },
+  {
+    "id": 17,
+    "moduleNo": 4,
+    "name": "git push",
+    "tldr": "Uploads local committed snapshots to a remote repository branch.",
+    "syntax": "git push\ngit push -u <remote> <branch>\ngit push origin <branch>",
+    "example": "git push -u origin main",
+    "usedAfter": "git commit",
+    "usedBefore": "git pull"
+  },
+  {
+    "id": 18,
+    "moduleNo": 4,
+    "name": "git pull",
+    "tldr": "Fetches updates from a remote repository and merges them directly into your current branch.",
+    "syntax": "git pull\ngit pull <remote> <branch>",
+    "example": "git pull origin main",
+    "usedAfter": "git remote",
+    "usedBefore": "git push"
+  },
+  {
+    "id": 19,
+    "moduleNo": 4,
+    "name": "git fetch",
+    "tldr": "Downloads commits and branches from the remote without merging them into your local work.",
+    "syntax": "git fetch\ngit fetch <remote>",
+    "example": "git fetch origin",
+    "usedAfter": "git remote",
+    "usedBefore": "git merge"
+  },
+  {
+    "id": 20,
+    "moduleNo": 4,
+    "name": "git restore",
+    "tldr": "Restores working directory files from the last commit or unstages staged modifications.",
+    "syntax": "git restore <file>\ngit restore --staged <file>",
+    "example": "git restore index.html",
+    "usedAfter": "git status",
+    "usedBefore": "git commit"
+  }
+]

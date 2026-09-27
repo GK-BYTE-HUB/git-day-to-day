@@ -4,3 +4,4 @@ target/
 .vscode/
 *.war
 src/main/resources/db.properties
+.tools/

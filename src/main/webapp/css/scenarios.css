@@ -1,0 +1,265 @@
+/* =============================================================================
+   Git Day-to-Day (GitD2D) - Real-World Scenarios Stylesheet
+   Phase 1: Grid Layout, Alternating Card Accents & Pressed Effects
+   ============================================================================= */
+
+.scenarios-container {
+  padding-top: 40px;
+  padding-bottom: 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+}
+
+/* Page Header */
+.scenarios-header-card {
+  text-align: center;
+  max-width: 850px;
+  margin: 0 auto;
+  padding: 36px 24px;
+  width: 100%;
+}
+
+.scenarios-badge {
+  display: inline-block;
+  margin-bottom: 16px;
+  background-color: var(--color-accent1);
+  color: #000;
+  border: 2px solid #000;
+  box-shadow: var(--shadow-sm);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.85rem;
+  padding: 4px 12px;
+}
+
+.scenarios-title {
+  font-size: 2.6rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -1px;
+  margin-bottom: 14px;
+  color: var(--color-text);
+}
+
+.scenarios-title .highlight {
+  background-color: var(--color-primary);
+  padding: 2px 8px;
+  border: 2px solid #000;
+  box-shadow: 2px 2px 0px 0px #000;
+  display: inline-block;
+}
+
+.scenarios-pitch {
+  font-size: 1.15rem;
+  line-height: 1.6;
+  color: var(--color-text);
+  max-width: 700px;
+  margin: 0 auto;
+  font-weight: 500;
+}
+
+/* Scenarios 2-Column Desktop / 1-Column Mobile Grid */
+.scenarios-grid-section {
+  width: 100%;
+}
+
+.scenarios-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 28px;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .scenarios-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Scenario Card Styling & Pressed Hover Effect */
+.scenario-card {
+  display: flex;
+  flex-direction: column;
+  padding: 28px;
+  background-color: #FFFFFF;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  border: var(--border-thick);
+  box-shadow: var(--shadow-lg);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Pressed Button Effect on Hover (translate 4px, 4px with reduced shadow 4px 4px) */
+.scenario-card:hover {
+  transform: translate(4px, 4px);
+  box-shadow: 4px 4px 0px 0px #000;
+}
+
+/* Alternating Card Accents */
+.scenario-card.bg-accent1 {
+  background-color: var(--color-accent1);
+}
+
+.scenario-card.bg-accent2 {
+  background-color: var(--color-accent2);
+  color: #FFFFFF;
+}
+
+.scenario-card.bg-primary {
+  background-color: var(--color-primary);
+}
+
+/* Header Inside Card */
+.scenario-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.scenario-card-number {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border: 2px solid #000;
+  box-shadow: 2px 2px 0px 0px #000;
+  background-color: #FFFFFF;
+  color: #000;
+  flex-shrink: 0;
+}
+
+.scenario-card-title {
+  font-size: 1.45rem;
+  font-weight: 800;
+  line-height: 1.25;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  color: inherit;
+}
+
+.scenario-card.bg-accent2 .scenario-card-title {
+  color: #FFFFFF;
+}
+
+.scenario-expand-icon {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  font-size: 1.2rem;
+  border: 2px solid #000;
+  background-color: #FFFFFF;
+  color: #000;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 2px 2px 0px 0px #000;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.scenario-card.is-expanded .scenario-expand-icon {
+  transform: rotate(180deg);
+}
+
+/* Expanded Content Body */
+.scenario-details {
+  display: none;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 3px solid #000;
+  cursor: default;
+}
+
+.scenario-card.is-expanded .scenario-details {
+  display: flex;
+}
+
+/* Detailed Sections inside Card */
+.detail-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.detail-label {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #000;
+  background-color: #FFFFFF;
+  padding: 2px 8px;
+  border: 2px solid #000;
+  display: inline-block;
+  align-self: flex-start;
+}
+
+.detail-text {
+  font-size: 1rem;
+  line-height: 1.5;
+  font-weight: 600;
+  color: inherit;
+}
+
+.scenario-card.bg-accent2 .detail-text {
+  color: #FFFFFF;
+}
+
+/* Fix Steps List */
+.fix-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.fix-step-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #FFFFFF;
+  color: #000;
+  border: 2px solid #000;
+  box-shadow: 2px 2px 0px 0px #000;
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.fix-step-num {
+  background-color: var(--color-primary);
+  border: 2px solid #000;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.fix-step-code {
+  font-family: var(--font-mono);
+}
+
+/* Fix It In The Lab Button */
+.scenario-action {
+  margin-top: 12px;
+  align-self: flex-start;
+}
+
+.fix-lab-btn {
+  background-color: #FFFFFF;
+  color: #000;
+}

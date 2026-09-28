@@ -1,6 +1,6 @@
 /* =============================================================================
    Git Day-to-Day (GitD2D) - Index / Landing Stylesheet
-   Phase 1, 2 & 4: Hero, Feature Cards, and Progress Hub
+   Phase 1 to 5: Complete Neo-Brutalist Landing Page & Polish
    ============================================================================= */
 
 .landing-container {
@@ -11,6 +11,18 @@
   gap: 40px;
 }
 
+/* Entrance Animations */
+@keyframes slideUpFade {
+  0% {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* 1. Hero Section */
 .hero-card {
   text-align: center;
@@ -18,6 +30,7 @@
   margin: 0 auto;
   padding: 40px 24px;
   width: 100%;
+  animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .hero-badge {
@@ -78,6 +91,7 @@
   font-weight: 600;
   color: var(--color-text);
   min-height: 20px;
+  letter-spacing: 0.3px;
 }
 
 /* 2. Progress Hub Section */
@@ -89,6 +103,7 @@
   gap: 24px;
   border: var(--border-thick);
   box-shadow: var(--shadow-lg);
+  animation: slideUpFade 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .progress-hub-header {
@@ -152,7 +167,7 @@
   justify-content: flex-end;
   padding-right: 12px;
   transition: width 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
-  min-width: 48px; /* Ensures text inside visible even at low % */
+  min-width: 48px;
 }
 
 .progress-bar-text {
@@ -190,7 +205,7 @@
   color: #FFFFFF;
 }
 
-/* 3. Feature Cards Grid */
+/* 3. Feature Cards Grid with Staggered Entrance */
 .features-section {
   width: 100%;
 }
@@ -214,11 +229,29 @@
   padding: 32px 28px;
   background-color: #FFFFFF;
   position: relative;
-  transition: transform 0.15s ease;
+  opacity: 0;
+  animation: slideUpFade 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.features-grid .feature-card:nth-child(1) {
+  animation-delay: 0.08s;
+}
+
+.features-grid .feature-card:nth-child(2) {
+  animation-delay: 0.16s;
+}
+
+.features-grid .feature-card:nth-child(3) {
+  animation-delay: 0.24s;
+}
+
+.features-grid .feature-card:nth-child(4) {
+  animation-delay: 0.32s;
 }
 
 .feature-card:hover {
-  transform: translate(-3px, -3px);
+  transform: translate(-3px, -3px) !important;
 }
 
 .feature-header {

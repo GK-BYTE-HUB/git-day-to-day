@@ -1,6 +1,6 @@
 /**
  * Git Day-to-Day (GitD2D) - Real-World Scenarios Script
- * Phase 2: Render cards from mock JSON & accordion toggle behavior
+ * Phase 2 & 3: Render cards from mock JSON, accordion toggle, progress tracking & routing
  */
 
 const MOCK_SCENARIOS_URL = 'api-contracts/scenarios.json';
@@ -96,25 +96,55 @@ function renderScenarios(scenarios) {
       </div>
     `;
 
-    // Click handler to toggle card expansion
+    // Click handler to toggle card expansion & record progress
     card.addEventListener('click', (e) => {
       // Don't toggle card if clicking the button link directly
       if (e.target.closest('.fix-lab-btn')) return;
 
-      const isExpanded = card.classList.contains('is-expanded');
-
-      // Accordion behavior: close other cards when one is opened
-      document.querySelectorAll('.scenario-card.is-expanded').forEach(otherCard => {
-        if (otherCard !== card) {
-          otherCard.classList.remove('is-expanded');
-        }
-      });
-
-      card.classList.toggle('is-expanded', !isExpanded);
+      handleCardClick(scenario.id, card);
     });
 
     container.appendChild(card);
   });
+}
+
+/**
+ * Toggles card expansion and records scenario ID into gitProgress.scenariosViewed
+ */
+function handleCardClick(scenarioId, card) {
+  const isExpanded = card.classList.contains('is-expanded');
+
+  // Accordion behavior: close other cards when one is opened
+  document.querySelectorAll('.scenario-card.is-expanded').forEach(otherCard => {
+    if (otherCard !== card) {
+      otherCard.classList.remove('is-expanded');
+    }
+  });
+
+  const nextState = !isExpanded;
+  card.classList.toggle('is-expanded', nextState);
+
+  // If opening card, safely record viewed progress
+  if (nextState) {
+    try {
+      if (typeof window.recordScenarioViewed === 'function') {
+        window.recordScenarioViewed(scenarioId);
+      } else if (typeof recordScenarioViewed === 'function') {
+        recordScenarioViewed(scenarioId);
+      } else {
+        const raw = localStorage.getItem('gitProgress');
+        const parsed = raw ? JSON.parse(raw) : {};
+        const target = parsed.gitProgress ? parsed.gitProgress : parsed;
+        if (!Array.isArray(target.scenariosViewed)) target.scenariosViewed = [];
+        if (!target.scenariosViewed.includes(Number(scenarioId))) {
+          target.scenariosViewed.push(Number(scenarioId));
+          localStorage.setItem('gitProgress', JSON.stringify(target));
+        }
+      }
+    } catch (e) {
+      console.warn('[GitD2D] Safely handled scenario view recording error:', e);
+    }
+  }
 }
 
 /**

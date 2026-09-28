@@ -1,6 +1,6 @@
 /* =============================================================================
    Git Day-to-Day (GitD2D) - Index / Landing Stylesheet
-   Phase 1: Hero & Layout Styles
+   Phase 1 & 2: Hero, Progress Hub, and Feature Cards
    ============================================================================= */
 
 .landing-container {
@@ -17,6 +17,7 @@
   max-width: 800px;
   margin: 0 auto;
   padding: 40px 24px;
+  width: 100%;
 }
 
 .hero-badge {
@@ -77,4 +78,85 @@
   font-weight: 600;
   color: var(--color-text);
   min-height: 20px;
+}
+
+/* 2. Feature Cards Grid */
+.features-section {
+  width: 100%;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 28px;
+}
+
+@media (max-width: 768px) {
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.feature-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 32px 28px;
+  background-color: #FFFFFF;
+  position: relative;
+  transition: transform 0.15s ease;
+}
+
+.feature-card:hover {
+  transform: translate(-3px, -3px);
+}
+
+.feature-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.feature-tag {
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border: 2px solid #000;
+  box-shadow: 2px 2px 0px 0px #000;
+  background-color: var(--color-primary);
+}
+
+.feature-tag.tag-pink {
+  background-color: var(--color-accent1);
+}
+
+.feature-tag.tag-blue {
+  background-color: var(--color-accent2);
+  color: #FFF;
+}
+
+.feature-tag.tag-green {
+  background-color: var(--color-success);
+}
+
+.feature-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin-bottom: 12px;
+  color: #000;
+  letter-spacing: -0.5px;
+}
+
+.feature-desc {
+  font-size: 1.05rem;
+  line-height: 1.55;
+  color: var(--color-text);
+  margin-bottom: 24px;
+}
+
+.feature-action {
+  margin-top: auto;
+  align-self: flex-start;
 }

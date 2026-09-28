@@ -423,6 +423,42 @@
   flex-direction: column;
   gap: 16px;
   width: 100%;
+  position: relative;
+}
+
+.graph-node-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.graph-connector-line {
+  position: absolute;
+  left: 21px;
+  top: 30px;
+  bottom: -18px;
+  width: 4px;
+  background-color: #000000;
+  z-index: 1;
+}
+
+.graph-node-wrapper:last-child .graph-connector-line {
+  display: none;
+}
+
+.graph-branch-tag {
+  background-color: var(--blue);
+  color: #FFFFFF;
+  border: 1px solid #000000;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 1px 6px;
+}
+
+.graph-branch-tag.head {
+  background-color: var(--cta);
+  color: #000000;
 }
 
 .graph-node-card {

@@ -23,6 +23,41 @@
         </div>
     </section>
 
+    <!-- Progress Hub (Shown only for returning users) -->
+    <section id="progress-hub" class="neo-card progress-hub" style="display: none;">
+        <div class="progress-hub-header">
+            <div class="progress-hub-title-group">
+                <span class="neo-badge progress-badge">PROGRESS HUB</span>
+                <h2 class="progress-hub-heading">Welcome back!</h2>
+            </div>
+            <div class="progress-stats">
+                <span class="stat-pill" id="stat-commands">Commands Practiced: <strong>0/20</strong></span>
+                <span class="stat-pill" id="stat-missions">Missions Completed: <strong>0/4</strong></span>
+            </div>
+        </div>
+
+        <!-- Chunky Brutalist Progress Bar -->
+        <div class="progress-bar-container">
+            <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%;">
+                <span id="progress-bar-text" class="progress-bar-text">0%</span>
+            </div>
+        </div>
+
+        <!-- Quick-Jump Buttons -->
+        <div class="quick-jump-group">
+            <span class="quick-jump-label">QUICK JUMP:</span>
+            <a href="${pageContext.request.contextPath}/learning.jsp?module=1" id="qj-learn" class="neo-btn qj-btn">
+                Learn &rarr;
+            </a>
+            <a href="${pageContext.request.contextPath}/lab.jsp?mode=guided&mission=1" id="qj-lab" class="neo-btn qj-btn qj-primary">
+                Lab &rarr;
+            </a>
+            <a href="${pageContext.request.contextPath}/scenarios.jsp" id="qj-scenarios" class="neo-btn qj-btn">
+                Scenarios &rarr;
+            </a>
+        </div>
+    </section>
+
     <!-- Four Feature Block Cards -->
     <section class="features-section">
         <div class="features-grid">

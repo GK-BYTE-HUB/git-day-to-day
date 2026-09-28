@@ -1,0 +1,80 @@
+/* =============================================================================
+   Git Day-to-Day (GitD2D) - Index / Landing Stylesheet
+   Phase 1: Hero & Layout Styles
+   ============================================================================= */
+
+.landing-container {
+  padding-top: 40px;
+  padding-bottom: 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+/* 1. Hero Section */
+.hero-card {
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+.hero-badge {
+  display: inline-block;
+  margin-bottom: 20px;
+  background-color: var(--color-accent1);
+  color: #000;
+  border: 2px solid #000;
+  box-shadow: var(--shadow-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.85rem;
+  padding: 4px 12px;
+}
+
+.hero-title {
+  font-size: 2.8rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -1px;
+  margin-bottom: 16px;
+  color: var(--color-text);
+}
+
+.hero-title .highlight {
+  background-color: var(--color-primary);
+  padding: 2px 8px;
+  border: 2px solid #000;
+  box-shadow: 2px 2px 0px 0px #000;
+  display: inline-block;
+}
+
+.hero-pitch {
+  font-size: 1.25rem;
+  line-height: 1.6;
+  color: var(--color-text);
+  max-width: 650px;
+  margin: 0 auto 32px auto;
+  font-weight: 500;
+}
+
+.hero-cta-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.hero-cta-btn {
+  font-size: 1.15rem;
+  padding: 16px 36px;
+}
+
+.hero-microcopy {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text);
+  min-height: 20px;
+}

@@ -1,23 +1,29 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <jsp:include page="includes/header.jsp">
-    <jsp:param name="title" value="Git Day to Day | Neo-Brutalism Core Verified" />
+    <jsp:param name="title" value="Git Day to Day | Learn Git Interactively" />
 </jsp:include>
 
-<div class="container" style="padding-top: 48px; padding-bottom: 48px;">
-    <section class="neo-card" style="max-width: 650px; margin: 40px auto; text-align: center;">
-        <span class="neo-badge" style="display: inline-block; margin-bottom: 16px;">Phase 3 &bull; Step 5 Checkpoint</span>
-        <h1 style="font-size: 2.2rem; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 16px;">
-            Neo-Brutalism Core Active
+<link rel="stylesheet" href="${pageContext.request.contextPath}/css/index.css">
+
+<div class="container landing-container">
+    <!-- Hero Section -->
+    <section class="neo-card hero-card">
+        <span class="hero-badge">Built for Beginners</span>
+        <h1 class="hero-title">
+            Master <span class="highlight">Git</span> through terminal simulation.
         </h1>
-        <p style="font-size: 1.1rem; line-height: 1.6; margin-bottom: 28px; color: var(--text);">
-            The shared design system is working. Global CSS tokens, typography (<code style="background: #e2e8f0; padding: 2px 6px;">Space Grotesk</code> &amp; <code style="background: #e2e8f0; padding: 2px 6px;">IBM Plex Mono</code>), and modular JSP headers and footers are functioning across the application.
+        <p class="hero-pitch">
+            Learn Git step-by-step in a risk-free simulated environment without breaking real repositories.
         </p>
-        <div>
-            <button type="button" class="neo-btn" id="test-btn">
-                Test Neo Button &rarr;
-            </button>
+        <div class="hero-cta-group">
+            <a href="${pageContext.request.contextPath}/learning.jsp?module=1" id="main-cta-btn" class="neo-btn hero-cta-btn">
+                START LEARNING &rarr;
+            </a>
+            <div id="cta-microcopy" class="hero-microcopy"></div>
         </div>
     </section>
 </div>
+
+<script src="${pageContext.request.contextPath}/js/index.js"></script>
 
 <jsp:include page="includes/footer.jsp" />

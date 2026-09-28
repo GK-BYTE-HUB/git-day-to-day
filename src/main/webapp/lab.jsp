@@ -187,6 +187,7 @@
 </div>
 
 <!-- Git Engine & State Model Scripts -->
+<script src="${pageContext.request.contextPath}/js/progress.js"></script>
 <script src="${pageContext.request.contextPath}/js/simulatorState.js"></script>
 <script src="${pageContext.request.contextPath}/js/gitEngine.js"></script>
 <script src="${pageContext.request.contextPath}/js/lab.js"></script>

@@ -1,20 +1,56 @@
 /**
  * =============================================================================
  * Git Day-to-Day (GitD2D) - Practical Lab Frontend Controller
- * Phase 3, Step 4: DOM Reactivity & Terminal Wiring
+ * Phase 3, Step 4 & 5: DOM Reactivity, Terminal Wiring & Guided Mission Logic
  * =============================================================================
  * Connects the Interactive Terminal to the Git Simulation Engine,
- * listens for simulator state transitions, and dynamically re-renders:
+ * listens for simulator state transitions, fetches and tracks guided missions,
+ * and dynamically re-renders:
+ * - Mission Control Top Banner (Step counter, Objective, Expected command hint)
  * - File Tree (Left Column - Top)
  * - Working Directory & Staging Area (Left Column - Bottom)
  * - Commit Graph & History Nodes (Middle Column)
  * - Terminal Screen Output Buffer (Right Column)
  */
 
-// Initialize simulator state
-let currentState = (typeof window.getInitialState === 'function')
+// =============================================================================
+// Mission State & Configuration
+// =============================================================================
+
+const MISSION_TITLES = {
+  1: "Mission 1: Workspace Setup",
+  2: "Mission 2: First Snapshot",
+  3: "Mission 3: Parallel Universe",
+  4: "Mission 4: Connecting & Undoing"
+};
+
+/**
+ * Parses the ?mission=X URL parameter, defaulting to mission 1 if absent or invalid.
+ *
+ * @returns {number} Active mission number
+ */
+function getActiveMissionFromUrl() {
+  if (typeof window !== 'undefined' && window.location && window.location.search) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const m = parseInt(urlParams.get('mission'), 10);
+    if (!isNaN(m) && m >= 1) {
+      return m;
+    }
+  }
+  return 1;
+}
+
+let activeMission = getActiveMissionFromUrl();
+let currentMissionSteps = [];
+let currentStepIndex = 0;
+
+// =============================================================================
+// Simulator State & Terminal History
+// =============================================================================
+
+let currentState = (typeof window !== 'undefined' && typeof window.getInitialState === 'function')
   ? window.getInitialState()
-  : ((typeof window.initialSimulatorState === 'object' && window.initialSimulatorState !== null)
+  : ((typeof window !== 'undefined' && typeof window.initialSimulatorState === 'object' && window.initialSimulatorState !== null)
       ? JSON.parse(JSON.stringify(window.initialSimulatorState))
       : {
           fileSystem: [],
@@ -36,35 +72,229 @@ let historyIndex = -1;
 // DOM Ready Lifecycle & Event Listeners
 // =============================================================================
 
-document.addEventListener('DOMContentLoaded', () => {
-  // Initial UI Render
-  renderUI(currentState);
+if (typeof document !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', () => {
+    // 1. Initial Simulator UI Render
+    renderUI(currentState);
 
-  // Wire up Terminal Input
-  setupTerminalInput();
+    // 2. Wire up Terminal Input Field
+    setupTerminalInput();
 
-  // Wire up Reset Lab Button
-  setupResetButton();
+    // 3. Wire up Reset Lab Button
+    setupResetButton();
 
-  // Wire up Terminal Screen click-to-focus
-  const terminalScreen = document.getElementById('terminal-screen');
-  const terminalInput = document.getElementById('terminal-input');
-  if (terminalScreen && terminalInput) {
-    terminalScreen.addEventListener('click', () => {
-      terminalInput.focus();
-    });
-  }
-});
+    // 4. Wire up Mission Navigation Buttons (Prev / Next)
+    setupMissionNavButtons();
+
+    // 5. Fetch and initialize Active Guided Mission
+    loadMission();
+
+    // 6. Wire up Terminal Screen click-to-focus
+    const terminalScreen = document.getElementById('terminal-screen');
+    const terminalInput = document.getElementById('terminal-input');
+    if (terminalScreen && terminalInput) {
+      terminalScreen.addEventListener('click', () => {
+        terminalInput.focus();
+      });
+    }
+  });
+}
 
 /**
  * Global Reactivity Listener:
  * Fires whenever executeCommand dispatches the CustomEvent 'stateChanged' on window.
  */
-window.addEventListener('stateChanged', (event) => {
-  const newState = (event && event.detail) ? event.detail : currentState;
-  currentState = newState;
-  renderUI(newState);
-});
+if (typeof window !== 'undefined') {
+  window.addEventListener('stateChanged', (event) => {
+    const newState = (event && event.detail) ? event.detail : currentState;
+    currentState = newState;
+    renderUI(newState);
+  });
+}
+
+// =============================================================================
+// Guided Mission Data Fetching & Banner Updates
+// =============================================================================
+
+/**
+ * Asynchronously fetches mission steps for the active mission from the backend API.
+ * Falls back to static api-contracts/missions.json if the servlet is unavailable.
+ */
+async function loadMission() {
+  activeMission = getActiveMissionFromUrl();
+  if (typeof window !== 'undefined') {
+    window.activeMission = activeMission;
+  }
+  try {
+    let response = await fetch(`/api/missions?mission=${activeMission}`);
+    if (!response.ok) {
+      response = await fetch(`api/missions?mission=${activeMission}`);
+    }
+
+    if (response.ok) {
+      currentMissionSteps = await response.json();
+    } else {
+      console.warn(`API returned HTTP ${response.status} for mission ${activeMission}. Attempting fallback contract.`);
+      const fallback = await fetch('api-contracts/missions.json');
+      if (fallback.ok) {
+        const allSteps = await fallback.json();
+        currentMissionSteps = allSteps.filter(s => s.missionNo === activeMission);
+      } else {
+        currentMissionSteps = [];
+      }
+    }
+  } catch (err) {
+    console.warn(`Network error loading mission ${activeMission}, attempting fallback contract:`, err);
+    try {
+      const fallback = await fetch('api-contracts/missions.json');
+      if (fallback.ok) {
+        const allSteps = await fallback.json();
+        currentMissionSteps = allSteps.filter(s => s.missionNo === activeMission);
+      } else {
+        currentMissionSteps = [];
+      }
+    } catch (fallbackErr) {
+      console.error('All fetch attempts for mission steps failed:', fallbackErr);
+      currentMissionSteps = [];
+    }
+  }
+
+  currentStepIndex = 0;
+  if (typeof window !== 'undefined') {
+    window.currentMissionSteps = currentMissionSteps;
+    window.currentStepIndex = currentStepIndex;
+  }
+  updateMissionBanner();
+}
+
+/**
+ * Updates the Mission Control top banner with current step progress,
+ * objective instructions, and expected command hint.
+ */
+function updateMissionBanner() {
+  const stepIndicatorEl = document.getElementById('mission-step-indicator');
+  const missionTitleEl = document.getElementById('mission-title');
+  const instructionEl = document.getElementById('mission-instruction');
+  const hintEl = document.getElementById('mission-hint');
+  const badgeEl = document.getElementById('mission-badge');
+
+  // 1. Mission Title
+  if (missionTitleEl) {
+    missionTitleEl.textContent = MISSION_TITLES[activeMission] || `Mission ${activeMission}`;
+  }
+
+  // Handle empty or loading state
+  if (!Array.isArray(currentMissionSteps) || currentMissionSteps.length === 0) {
+    if (stepIndicatorEl) stepIndicatorEl.textContent = 'Loading...';
+    if (instructionEl) instructionEl.textContent = 'Loading mission instructions...';
+    if (hintEl) hintEl.innerHTML = '<span>Expected:</span> <strong>...</strong>';
+    return;
+  }
+
+  const totalSteps = currentMissionSteps.length;
+  const isComplete = currentStepIndex >= totalSteps;
+
+  if (isComplete) {
+    // Mission Complete Banner State
+    if (stepIndicatorEl) {
+      stepIndicatorEl.textContent = `Completed (${totalSteps}/${totalSteps})`;
+      stepIndicatorEl.style.backgroundColor = 'var(--success, #00FF00)';
+      stepIndicatorEl.style.color = '#000000';
+    }
+    if (badgeEl) {
+      badgeEl.textContent = 'Mission Accomplished';
+    }
+    if (instructionEl) {
+      instructionEl.textContent = 'Congratulations! You have completed all objectives for this mission.';
+    }
+    if (hintEl) {
+      hintEl.innerHTML = '<span>Status:</span> <strong style="color: var(--success, #00FF00)">MISSION COMPLETE!</strong>';
+    }
+  } else {
+    // Active Step Banner State
+    const currentStep = currentMissionSteps[currentStepIndex] || {};
+    const stepNo = currentStepIndex + 1;
+
+    if (stepIndicatorEl) {
+      stepIndicatorEl.textContent = `Step ${stepNo} of ${totalSteps}`;
+      stepIndicatorEl.style.backgroundColor = '';
+      stepIndicatorEl.style.color = '';
+    }
+    if (badgeEl) {
+      badgeEl.textContent = 'Mission Control';
+    }
+    if (instructionEl) {
+      instructionEl.textContent = currentStep.instruction || 'Follow the expected command below to advance.';
+    }
+    if (hintEl) {
+      const expectedCmd = (Array.isArray(currentStep.expectedCommands) && currentStep.expectedCommands.length > 0)
+        ? currentStep.expectedCommands[0]
+        : '';
+      hintEl.innerHTML = `<span>Expected:</span> <strong>${escapeHtml(expectedCmd)}</strong>`;
+    }
+  }
+
+  // Update navigation button states
+  const btnPrev = document.getElementById('btn-prev-step');
+  const btnNext = document.getElementById('btn-next-step');
+  if (btnPrev) {
+    btnPrev.disabled = (currentStepIndex <= 0);
+    btnPrev.style.opacity = (currentStepIndex <= 0) ? '0.5' : '1';
+    btnPrev.style.cursor = (currentStepIndex <= 0) ? 'not-allowed' : 'pointer';
+  }
+  if (btnNext) {
+    btnNext.disabled = (currentStepIndex >= totalSteps - 1);
+    btnNext.style.opacity = (currentStepIndex >= totalSteps - 1) ? '0.5' : '1';
+    btnNext.style.cursor = (currentStepIndex >= totalSteps - 1) ? 'not-allowed' : 'pointer';
+  }
+}
+
+/**
+ * Escapes HTML characters in strings for safe innerHTML injection.
+ *
+ * @param {string} str
+ * @returns {string}
+ */
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/**
+ * Wires previous and next step manual navigation buttons in the top banner.
+ */
+function setupMissionNavButtons() {
+  const btnPrev = document.getElementById('btn-prev-step');
+  const btnNext = document.getElementById('btn-next-step');
+
+  if (btnPrev) {
+    btnPrev.addEventListener('click', () => {
+      if (currentStepIndex > 0) {
+        currentStepIndex--;
+        if (typeof window !== 'undefined') {
+          window.currentStepIndex = currentStepIndex;
+        }
+        updateMissionBanner();
+      }
+    });
+  }
+
+  if (btnNext) {
+    btnNext.addEventListener('click', () => {
+      if (currentMissionSteps && currentStepIndex < currentMissionSteps.length - 1) {
+        currentStepIndex++;
+        if (typeof window !== 'undefined') {
+          window.currentStepIndex = currentStepIndex;
+        }
+        updateMissionBanner();
+      }
+    });
+  }
+}
 
 // =============================================================================
 // Terminal Wiring & Command Dispatcher
@@ -132,18 +362,11 @@ function setupTerminalInput() {
       echoTerminalCommand(rawInput);
 
       // Handle 'clear' command specifically for clean screen buffer
-      if (trimmedInput === 'clear') {
-        const result = window.executeCommand
-          ? window.executeCommand(currentState, rawInput)
-          : { newState: currentState, outputMessage: '', success: true };
-        currentState = result.newState;
-        clearTerminalScreen();
-        return;
-      }
+      const isClearCmd = (trimmedInput === 'clear');
 
       // Call Git Engine executeCommand
       let result;
-      if (typeof window.executeCommand === 'function') {
+      if (typeof window !== 'undefined' && typeof window.executeCommand === 'function') {
         result = window.executeCommand(currentState, rawInput);
       } else {
         result = {
@@ -153,18 +376,130 @@ function setupTerminalInput() {
         };
       }
 
-      // Print outputMessage with semantic styling
-      if (result.outputMessage && result.outputMessage.trim().length > 0) {
-        printTerminalOutput(result.outputMessage, result.success);
+      // If clear command, wipe buffer, otherwise print outputMessage
+      if (isClearCmd) {
+        clearTerminalScreen();
+      } else {
+        // Print outputMessage with semantic styling
+        if (result.outputMessage && result.outputMessage.trim().length > 0) {
+          printTerminalOutput(result.outputMessage, result.success);
+        }
       }
 
       // Update local state copy
       currentState = result.newState;
 
+      // Command Interception & Progress Validation
+      if (trimmedInput.length > 0) {
+        validateMissionStep(trimmedInput, rawInput, result);
+      }
+
       // Auto-scroll terminal buffer to bottom
       terminalScreen.scrollTop = terminalScreen.scrollHeight;
     }
   });
+}
+
+/**
+ * Evaluates whether the user's input matches the expected command(s) for the current step.
+ * Supports exact matches, quote variations (single vs double quotes), and whitespace collapsing.
+ *
+ * @param {string} input - User command string
+ * @param {Array<string>} expectedList - List of expected command strings
+ * @returns {boolean} True if matching
+ */
+function isCommandMatchingExpected(input, expectedList) {
+  if (!Array.isArray(expectedList) || expectedList.length === 0) {
+    return false;
+  }
+  const trimmed = input.trim();
+
+  // 1. Strict exact match
+  if (expectedList.includes(trimmed)) {
+    return true;
+  }
+
+  // 2. Quote normalization match (single vs double quotes)
+  const normalizedInput = trimmed.replace(/'/g, '"');
+  if (expectedList.some(cmd => cmd.replace(/'/g, '"') === normalizedInput)) {
+    return true;
+  }
+
+  // 3. Normalized whitespace collapsing
+  const collapsedInput = trimmed.replace(/\s+/g, ' ');
+  return expectedList.some(cmd => {
+    return cmd.trim().replace(/\s+/g, ' ').replace(/'/g, '"') === collapsedInput.replace(/'/g, '"');
+  });
+}
+
+/**
+ * Validates command against active mission objective and advances progress.
+ *
+ * @param {string} trimmedInput - Cleaned command input
+ * @param {string} rawInput - Raw input string
+ * @param {Object} result - Execution result { newState, outputMessage, success }
+ */
+function validateMissionStep(trimmedInput, rawInput, result) {
+  // If no mission is loaded or mission is already completed, do nothing
+  if (!Array.isArray(currentMissionSteps) || currentMissionSteps.length === 0) {
+    return;
+  }
+  if (currentStepIndex >= currentMissionSteps.length) {
+    return;
+  }
+
+  const currentStep = currentMissionSteps[currentStepIndex];
+  const expectedCommands = Array.isArray(currentStep.expectedCommands) ? currentStep.expectedCommands : [];
+  const isMatch = isCommandMatchingExpected(trimmedInput, expectedCommands);
+
+  if (isMatch && result.success) {
+    // Advance step
+    currentStepIndex++;
+    if (typeof window !== 'undefined') {
+      window.currentStepIndex = currentStepIndex;
+    }
+
+    if (currentStepIndex < currentMissionSteps.length) {
+      // More steps remain in this mission
+      updateMissionBanner();
+    } else {
+      // Mission is complete!
+      // 1. Print bright success message in terminal buffer
+      printTerminalOutput("MISSION COMPLETE!", true);
+      printTerminalHighlight(`★ Congratulations! You successfully completed Mission ${activeMission}! ★`);
+
+      // 2. Use window.saveProgress (from progress.js) to mark mission complete
+      if (typeof window !== 'undefined') {
+        if (typeof window.getProgress === 'function' && typeof window.saveProgress === 'function') {
+          const progress = window.getProgress();
+          if (!progress.missionsCompleted.includes(activeMission)) {
+            progress.missionsCompleted.push(activeMission);
+          }
+          if (progress.currentMission <= activeMission) {
+            progress.currentMission = Math.min(activeMission + 1, 4);
+          }
+          window.saveProgress(progress);
+        } else if (typeof window.saveProgress === 'function') {
+          window.saveProgress({
+            missionsCompleted: [activeMission],
+            currentMission: Math.min(activeMission + 1, 4)
+          });
+        }
+
+        // Also call recordMissionCompleted if available
+        if (typeof window.recordMissionCompleted === 'function') {
+          window.recordMissionCompleted(activeMission);
+        }
+      }
+
+      // 3. Update top banner to show completion
+      updateMissionBanner();
+    }
+  } else if (!isMatch && result.success) {
+    // Did NOT match, but command itself succeeded in simulator -> print subtle hint
+    const expectedCmd = (expectedCommands.length > 0) ? expectedCommands[0] : '';
+    printTerminalHint(`Hint: The mission expects you to run: ${expectedCmd}`);
+  }
 }
 
 /**
@@ -192,7 +527,7 @@ function echoTerminalCommand(commandText) {
 }
 
 /**
- * Appends output text to the terminal buffer.
+ * Appends standard output text to the terminal buffer.
  * Colors with --success (green) if success is true, or --error (red) if false.
  *
  * @param {string} message
@@ -216,6 +551,42 @@ function printTerminalOutput(message, success) {
 }
 
 /**
+ * Appends a bright celebratory gold highlight message to the terminal screen.
+ *
+ * @param {string} message
+ */
+function printTerminalHighlight(message) {
+  const terminalScreen = document.getElementById('terminal-screen');
+  if (!terminalScreen) return;
+
+  const highlightLine = document.createElement('div');
+  highlightLine.className = 'terminal-line success mission-complete-highlight';
+  highlightLine.style.color = 'var(--cta, #FFD700)';
+  highlightLine.style.fontWeight = 'bold';
+  highlightLine.textContent = message;
+  terminalScreen.appendChild(highlightLine);
+  terminalScreen.scrollTop = terminalScreen.scrollHeight;
+}
+
+/**
+ * Appends a subtle gray italic hint line to the terminal screen.
+ *
+ * @param {string} message
+ */
+function printTerminalHint(message) {
+  const terminalScreen = document.getElementById('terminal-screen');
+  if (!terminalScreen) return;
+
+  const hintLine = document.createElement('div');
+  hintLine.className = 'terminal-line hint';
+  hintLine.style.color = 'var(--text-muted, #94A3B8)';
+  hintLine.style.fontStyle = 'italic';
+  hintLine.textContent = message;
+  terminalScreen.appendChild(hintLine);
+  terminalScreen.scrollTop = terminalScreen.scrollHeight;
+}
+
+/**
  * Clears terminal output screen and restores standard header.
  */
 function clearTerminalScreen() {
@@ -231,14 +602,15 @@ function clearTerminalScreen() {
 }
 
 /**
- * Wires the Reset Lab button in Mission Control to restore pristine initial state.
+ * Wires the Reset Lab button in Mission Control to restore pristine initial state
+ * and restart current mission step progress.
  */
 function setupResetButton() {
   const btnReset = document.getElementById('btn-reset-lab');
   if (!btnReset) return;
 
   btnReset.addEventListener('click', () => {
-    if (typeof window.getInitialState === 'function') {
+    if (typeof window !== 'undefined' && typeof window.getInitialState === 'function') {
       currentState = window.getInitialState();
     } else {
       currentState = {
@@ -254,8 +626,15 @@ function setupResetButton() {
       };
     }
 
+    // Reset mission progress for current session
+    currentStepIndex = 0;
+    if (typeof window !== 'undefined') {
+      window.currentStepIndex = currentStepIndex;
+    }
+    updateMissionBanner();
+
     // Dispatch stateChanged so all subscribers react
-    if (typeof window.dispatchEvent === 'function') {
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
       const evt = new CustomEvent('stateChanged', { detail: currentState });
       window.dispatchEvent(evt);
     } else {
@@ -635,14 +1014,52 @@ function formatTimestamp(isoStr) {
   }
 }
 
-// Attach controller helpers to window for debugging and programmatic control
+// =============================================================================
+// Window & Module Exports
+// =============================================================================
+
 if (typeof window !== 'undefined') {
+  window.activeMission = activeMission;
+  window.currentMissionSteps = currentMissionSteps;
+  window.currentStepIndex = currentStepIndex;
+  window.loadMission = loadMission;
+  window.updateMissionBanner = updateMissionBanner;
+  window.validateMissionStep = validateMissionStep;
+  window.isCommandMatchingExpected = isCommandMatchingExpected;
   window.LabController = {
     getCurrentState: () => currentState,
     setCurrentState: (s) => {
       currentState = s;
       renderUI(s);
     },
-    renderUI
+    renderUI,
+    getActiveMission: () => activeMission,
+    setActiveMission: (m) => {
+      activeMission = m;
+      loadMission();
+    },
+    getMissionSteps: () => currentMissionSteps,
+    setMissionSteps: (steps) => {
+      currentMissionSteps = steps;
+      updateMissionBanner();
+    },
+    getCurrentStepIndex: () => currentStepIndex,
+    setCurrentStepIndex: (idx) => {
+      currentStepIndex = idx;
+      updateMissionBanner();
+    },
+    loadMission,
+    updateMissionBanner
+  };
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    getActiveMissionFromUrl,
+    isCommandMatchingExpected,
+    validateMissionStep,
+    loadMission,
+    updateMissionBanner,
+    MISSION_TITLES
   };
 }

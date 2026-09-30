@@ -34,7 +34,7 @@
             </div>
             <div class="instruction-hint" id="mission-hint-container">
                 <button type="button" id="btn-show-hint" class="neo-btn">Show Hint</button>
-                <span id="mission-hint-text" style="display: none;"></span>
+                <span id="mission-hint-text"></span>
             </div>
         </div>
     </section>
@@ -68,7 +68,7 @@
                 <div class="file-tree-section">
                     <div class="sub-section-header">
                         <span>File Tree</span>
-                        <span style="font-family: var(--font-mono); font-size: 0.75rem; color: #64748B;">root/</span>
+                        <span class="file-tree-root-label">root/</span>
                     </div>
                     <div class="file-tree-body" id="file-tree-container">
                         <div class="file-tree-empty" id="file-tree-empty-msg">
@@ -141,11 +141,11 @@
 
                 <div class="commit-graph-body" id="commit-graph-scroll-area">
                     <div class="graph-canvas-placeholder" id="graph-empty-placeholder">
-                        <div style="font-size: 2.2rem; margin-bottom: 8px;">&#9741;</div>
-                        <h3 style="font-family: var(--font-heading); font-size: 1.1rem; font-weight: 800; margin-bottom: 6px;">
+                        <div class="graph-placeholder-icon">&#9741;</div>
+                        <h3 class="graph-placeholder-title">
                             No Commits Yet
                         </h3>
-                        <p style="font-family: var(--font-mono); font-size: 0.8rem; color: #64748B; max-width: 320px; margin: 0 auto;">
+                        <p class="graph-placeholder-text">
                             Initialize Git with <code>git init</code>, stage files with <code>git add</code>, and create snapshots with <code>git commit</code>.
                         </p>
                     </div>
@@ -195,7 +195,7 @@
                     <span class="terminal-dot green"></span>
                 </div>
                 <span class="terminal-title">bash &bull; simulator</span>
-                <span style="font-family: var(--font-mono); font-size: 0.7rem; color: #4ADE80;">ACTIVE</span>
+                <span class="terminal-active-badge">ACTIVE</span>
             </div>
 
             <!-- Scrollable Terminal Output Screen -->
@@ -228,7 +228,7 @@
 <!-- =========================================================================
      Notepad Modal for In-Browser File Editing
      ========================================================================= -->
-<div id="notepad-modal" class="notepad-modal-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="notepad-filename">
+<div id="notepad-modal" class="notepad-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="notepad-filename">
     <div class="notepad-modal-card neo-card">
         <div class="notepad-modal-header">
             <div class="notepad-title-group">

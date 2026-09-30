@@ -32,11 +32,20 @@
                     Create a new directory called "my-website" for your project.
                 </div>
             </div>
-            <div class="instruction-hint" id="mission-hint">
-                <span>Expected:</span> <strong>mkdir my-website</strong>
+            <div class="instruction-hint" id="mission-hint-container">
+                <button type="button" id="btn-show-hint" class="neo-btn">Show Hint</button>
+                <span id="mission-hint-text" style="display: none;"></span>
             </div>
         </div>
     </section>
+
+    <!-- =========================================================================
+         Persistent Mode Toggle UI (Guided vs Practice Sandbox)
+         ========================================================================= -->
+    <div class="lab-mode-controls" aria-label="Simulator Mode Controls">
+        <button type="button" id="btn-mode-guided" class="neo-btn mode-btn">Guided Missions</button>
+        <button type="button" id="btn-mode-practice" class="neo-btn mode-btn">Practice (Sandbox)</button>
+    </div>
 
     <!-- =========================================================================
          Main 3-Column Grid: Left (30%) | Middle (40%) | Right (30%)

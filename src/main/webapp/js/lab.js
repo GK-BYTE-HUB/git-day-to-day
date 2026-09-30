@@ -40,6 +40,19 @@ function getActiveMissionFromUrl() {
   return 1;
 }
 
+/**
+ * Checks whether the current URL specifies sandbox mode (?mode=sandbox).
+ *
+ * @returns {boolean} True if in sandbox mode
+ */
+function isSandboxMode() {
+  if (typeof window !== 'undefined' && window.location && window.location.search) {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('mode') === 'sandbox';
+  }
+  return false;
+}
+
 let activeMission = getActiveMissionFromUrl();
 let currentMissionSteps = [];
 let currentStepIndex = 0;
@@ -83,11 +96,26 @@ if (typeof document !== 'undefined') {
     // 3. Wire up Reset Lab Button
     setupResetButton();
 
-    // 4. Wire up Mission Navigation Buttons (Prev / Next)
-    setupMissionNavButtons();
+    // 4. Wire up Persistent Mode Controls (Guided vs Practice Sandbox)
+    setupModeControls();
 
-    // 5. Fetch and initialize Active Guided Mission
-    loadMission();
+    // 5. Sandbox Mode check vs Guided Mission mode
+    if (isSandboxMode()) {
+      // Entirely hide the top banner in sandbox mode
+      const banner = document.querySelector('.mission-control-banner');
+      if (banner) {
+        banner.style.display = 'none';
+      }
+    } else {
+      // Wire up Mission Navigation Buttons (Prev / Next)
+      setupMissionNavButtons();
+
+      // Wire up Hint Toggle Button (Bug 6)
+      setupHintToggle();
+
+      // Fetch and initialize Active Guided Mission (Bug 2)
+      loadMission();
+    }
 
     // 6. Wire up Terminal Screen click-to-focus
     const terminalScreen = document.getElementById('terminal-screen');
@@ -104,7 +132,7 @@ if (typeof document !== 'undefined') {
  * Global Reactivity Listener:
  * Fires whenever executeCommand dispatches the CustomEvent 'stateChanged' on window.
  */
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
   window.addEventListener('stateChanged', (event) => {
     const newState = (event && event.detail) ? event.detail : currentState;
     currentState = newState;
@@ -121,6 +149,9 @@ if (typeof window !== 'undefined') {
  * Falls back to static api-contracts/missions.json if the servlet is unavailable.
  */
 async function loadMission() {
+  if (isSandboxMode()) {
+    return;
+  }
   activeMission = getActiveMissionFromUrl();
   if (typeof window !== 'undefined') {
     window.activeMission = activeMission;
@@ -172,11 +203,16 @@ async function loadMission() {
  * objective instructions, and expected command hint.
  */
 function updateMissionBanner() {
+  if (isSandboxMode()) {
+    return;
+  }
+
   const stepIndicatorEl = document.getElementById('mission-step-indicator');
   const missionTitleEl = document.getElementById('mission-title');
   const instructionEl = document.getElementById('mission-instruction');
-  const hintEl = document.getElementById('mission-hint');
   const badgeEl = document.getElementById('mission-badge');
+  const hintBtnEl = document.getElementById('btn-show-hint');
+  const hintTextEl = document.getElementById('mission-hint-text');
 
   // 1. Mission Title
   if (missionTitleEl) {
@@ -187,7 +223,14 @@ function updateMissionBanner() {
   if (!Array.isArray(currentMissionSteps) || currentMissionSteps.length === 0) {
     if (stepIndicatorEl) stepIndicatorEl.textContent = 'Loading...';
     if (instructionEl) instructionEl.textContent = 'Loading mission instructions...';
-    if (hintEl) hintEl.innerHTML = '<span>Expected:</span> <strong>...</strong>';
+    if (hintBtnEl) {
+      hintBtnEl.textContent = 'Show Hint';
+      hintBtnEl.style.display = 'none';
+    }
+    if (hintTextEl) {
+      hintTextEl.textContent = '';
+      hintTextEl.style.display = 'none';
+    }
     return;
   }
 
@@ -207,8 +250,29 @@ function updateMissionBanner() {
     if (instructionEl) {
       instructionEl.textContent = 'Congratulations! You have completed all objectives for this mission.';
     }
-    if (hintEl) {
-      hintEl.innerHTML = '<span>Status:</span> <strong style="color: var(--success, #00FF00)">MISSION COMPLETE!</strong>';
+    if (hintBtnEl) {
+      hintBtnEl.style.display = 'none';
+    }
+    if (hintTextEl) {
+      hintTextEl.textContent = 'MISSION COMPLETE!';
+      hintTextEl.style.display = 'inline-block';
+      hintTextEl.style.color = 'var(--success, #00FF00)';
+    }
+
+    // Next Mission Redirect: Enable #btn-next-step and re-route click to next mission
+    const btnNext = document.getElementById('btn-next-step');
+    if (btnNext) {
+      btnNext.textContent = 'Next Mission \u2192';
+      btnNext.disabled = false;
+      btnNext.style.opacity = '1';
+      btnNext.style.cursor = 'pointer';
+      if (typeof btnNext.removeEventListener === 'function') {
+        btnNext.removeEventListener('click', handleNextStepClick);
+        btnNext.removeEventListener('click', handleNextMissionRedirect);
+      }
+      if (typeof btnNext.addEventListener === 'function') {
+        btnNext.addEventListener('click', handleNextMissionRedirect);
+      }
     }
   } else {
     // Active Step Banner State
@@ -226,11 +290,20 @@ function updateMissionBanner() {
     if (instructionEl) {
       instructionEl.textContent = currentStep.instruction || 'Follow the expected command below to advance.';
     }
-    if (hintEl) {
-      const expectedCmd = (Array.isArray(currentStep.expectedCommands) && currentStep.expectedCommands.length > 0)
-        ? currentStep.expectedCommands[0]
-        : '';
-      hintEl.innerHTML = `<span>Expected:</span> <strong>${escapeHtml(expectedCmd)}</strong>`;
+
+    const expectedCmd = (Array.isArray(currentStep.expectedCommands) && currentStep.expectedCommands.length > 0)
+      ? currentStep.expectedCommands[0]
+      : '';
+
+    // Reset hint to hidden and update expected command text for the step
+    if (hintBtnEl) {
+      hintBtnEl.style.display = '';
+      hintBtnEl.textContent = 'Show Hint';
+    }
+    if (hintTextEl) {
+      hintTextEl.textContent = expectedCmd;
+      hintTextEl.style.display = 'none';
+      hintTextEl.style.color = '';
     }
   }
 
@@ -242,10 +315,18 @@ function updateMissionBanner() {
     btnPrev.style.opacity = (currentStepIndex <= 0) ? '0.5' : '1';
     btnPrev.style.cursor = (currentStepIndex <= 0) ? 'not-allowed' : 'pointer';
   }
-  if (btnNext) {
+  if (btnNext && !isComplete) {
+    btnNext.textContent = 'Next \u2192';
     btnNext.disabled = (currentStepIndex >= totalSteps - 1);
     btnNext.style.opacity = (currentStepIndex >= totalSteps - 1) ? '0.5' : '1';
     btnNext.style.cursor = (currentStepIndex >= totalSteps - 1) ? 'not-allowed' : 'pointer';
+    if (typeof btnNext.removeEventListener === 'function') {
+      btnNext.removeEventListener('click', handleNextMissionRedirect);
+      btnNext.removeEventListener('click', handleNextStepClick);
+    }
+    if (typeof btnNext.addEventListener === 'function') {
+      btnNext.addEventListener('click', handleNextStepClick);
+    }
   }
 }
 
@@ -265,6 +346,42 @@ function escapeHtml(str) {
 }
 
 /**
+ * Handles Prev Step button click.
+ */
+function handlePrevStepClick() {
+  if (currentStepIndex > 0) {
+    currentStepIndex--;
+    if (typeof window !== 'undefined') {
+      window.currentStepIndex = currentStepIndex;
+    }
+    updateMissionBanner();
+  }
+}
+
+/**
+ * Handles Next Step button click during active mission steps.
+ */
+function handleNextStepClick() {
+  if (currentMissionSteps && currentStepIndex < currentMissionSteps.length - 1) {
+    currentStepIndex++;
+    if (typeof window !== 'undefined') {
+      window.currentStepIndex = currentStepIndex;
+    }
+    updateMissionBanner();
+  }
+}
+
+/**
+ * Handles Next Mission button click on mission completion: redirects to the next mission.
+ */
+function handleNextMissionRedirect() {
+  const next = activeMission + 1;
+  if (typeof window !== 'undefined' && window.location) {
+    window.location.href = '?mode=guided&mission=' + next;
+  }
+}
+
+/**
  * Wires previous and next step manual navigation buttons in the top banner.
  */
 function setupMissionNavButtons() {
@@ -272,28 +389,79 @@ function setupMissionNavButtons() {
   const btnNext = document.getElementById('btn-next-step');
 
   if (btnPrev) {
-    btnPrev.addEventListener('click', () => {
-      if (currentStepIndex > 0) {
-        currentStepIndex--;
-        if (typeof window !== 'undefined') {
-          window.currentStepIndex = currentStepIndex;
-        }
-        updateMissionBanner();
-      }
-    });
+    if (typeof btnPrev.removeEventListener === 'function') {
+      btnPrev.removeEventListener('click', handlePrevStepClick);
+    }
+    if (typeof btnPrev.addEventListener === 'function') {
+      btnPrev.addEventListener('click', handlePrevStepClick);
+    }
   }
 
   if (btnNext) {
-    btnNext.addEventListener('click', () => {
-      if (currentMissionSteps && currentStepIndex < currentMissionSteps.length - 1) {
-        currentStepIndex++;
-        if (typeof window !== 'undefined') {
-          window.currentStepIndex = currentStepIndex;
-        }
-        updateMissionBanner();
-      }
+    if (typeof btnNext.removeEventListener === 'function') {
+      btnNext.removeEventListener('click', handleNextMissionRedirect);
+      btnNext.removeEventListener('click', handleNextStepClick);
+    }
+    if (typeof btnNext.addEventListener === 'function') {
+      btnNext.addEventListener('click', handleNextStepClick);
+    }
+  }
+}
+
+/**
+ * Configures persistent mode switching buttons (Guided Missions vs Practice Sandbox).
+ * Reflects active state visually on page load and redirects on click.
+ */
+function setupModeControls() {
+  const btnGuided = document.getElementById('btn-mode-guided');
+  const btnPractice = document.getElementById('btn-mode-practice');
+  const sandbox = isSandboxMode();
+
+  if (btnGuided) {
+    if (!sandbox) {
+      btnGuided.classList.add('active');
+      btnGuided.setAttribute('aria-pressed', 'true');
+    } else {
+      btnGuided.classList.remove('active');
+      btnGuided.setAttribute('aria-pressed', 'false');
+    }
+    btnGuided.addEventListener('click', () => {
+      window.location.href = '?mode=guided&mission=1';
     });
   }
+
+  if (btnPractice) {
+    if (sandbox) {
+      btnPractice.classList.add('active');
+      btnPractice.setAttribute('aria-pressed', 'true');
+    } else {
+      btnPractice.classList.remove('active');
+      btnPractice.setAttribute('aria-pressed', 'false');
+    }
+    btnPractice.addEventListener('click', () => {
+      window.location.href = '?mode=sandbox';
+    });
+  }
+}
+
+/**
+ * Configures the Hint Toggle button to reveal or hide the expected command text.
+ */
+function setupHintToggle() {
+  const btn = document.getElementById('btn-show-hint');
+  const hintText = document.getElementById('mission-hint-text');
+  if (!btn || !hintText) return;
+
+  btn.addEventListener('click', () => {
+    const isHidden = (hintText.style.display === 'none' || getComputedStyle(hintText).display === 'none');
+    if (isHidden) {
+      hintText.style.display = 'inline-block';
+      btn.textContent = 'Hide Hint';
+    } else {
+      hintText.style.display = 'none';
+      btn.textContent = 'Show Hint';
+    }
+  });
 }
 
 // =============================================================================
@@ -389,8 +557,17 @@ function setupTerminalInput() {
       // Update local state copy
       currentState = result.newState;
 
-      // Command Interception & Progress Validation
-      if (trimmedInput.length > 0) {
+      // Persist simulator state to localStorage after every command
+      if (typeof localStorage !== 'undefined' && localStorage) {
+        try {
+          localStorage.setItem('git_lab_state', JSON.stringify(currentState));
+        } catch (storageErr) {
+          console.warn('Failed to save git_lab_state to localStorage:', storageErr);
+        }
+      }
+
+      // Command Interception & Progress Validation (bypassed in sandbox mode)
+      if (!isSandboxMode() && trimmedInput.length > 0) {
         validateMissionStep(trimmedInput, rawInput, result);
       }
 
@@ -440,6 +617,10 @@ function isCommandMatchingExpected(input, expectedList) {
  * @param {Object} result - Execution result { newState, outputMessage, success }
  */
 function validateMissionStep(trimmedInput, rawInput, result) {
+  // If in sandbox mode, bypass all command interception/validation
+  if (isSandboxMode()) {
+    return;
+  }
   // If no mission is loaded or mission is already completed, do nothing
   if (!Array.isArray(currentMissionSteps) || currentMissionSteps.length === 0) {
     return;
@@ -614,6 +795,15 @@ function setupResetButton() {
   if (!btnReset) return;
 
   btnReset.addEventListener('click', () => {
+    // Clear persisted simulator state from localStorage so user starts completely fresh
+    if (typeof localStorage !== 'undefined' && localStorage) {
+      try {
+        localStorage.removeItem('git_lab_state');
+      } catch (storageErr) {
+        console.warn('Failed to remove git_lab_state from localStorage:', storageErr);
+      }
+    }
+
     if (typeof window !== 'undefined' && typeof window.getInitialState === 'function') {
       currentState = window.getInitialState();
     } else {
@@ -630,12 +820,14 @@ function setupResetButton() {
       };
     }
 
-    // Reset mission progress for current session
-    currentStepIndex = 0;
-    if (typeof window !== 'undefined') {
-      window.currentStepIndex = currentStepIndex;
+    // Reset mission progress for current session (guided mode only)
+    if (!isSandboxMode()) {
+      currentStepIndex = 0;
+      if (typeof window !== 'undefined') {
+        window.currentStepIndex = currentStepIndex;
+      }
+      updateMissionBanner();
     }
-    updateMissionBanner();
 
     // Dispatch stateChanged so all subscribers react
     if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
@@ -1054,10 +1246,19 @@ function formatTimestamp(isoStr) {
 
 if (typeof window !== 'undefined') {
   window.activeMission = activeMission;
+  window.isSandboxMode = isSandboxMode;
   window.currentMissionSteps = currentMissionSteps;
   window.currentStepIndex = currentStepIndex;
   window.loadMission = loadMission;
   window.updateMissionBanner = updateMissionBanner;
+  window.setupTerminalInput = setupTerminalInput;
+  window.setupResetButton = setupResetButton;
+  window.setupMissionNavButtons = setupMissionNavButtons;
+  window.setupHintToggle = setupHintToggle;
+  window.setupModeControls = setupModeControls;
+  window.handleNextMissionRedirect = handleNextMissionRedirect;
+  window.handleNextStepClick = handleNextStepClick;
+  window.handlePrevStepClick = handlePrevStepClick;
   window.validateMissionStep = validateMissionStep;
   window.isCommandMatchingExpected = isCommandMatchingExpected;
   window.LabController = {
@@ -1090,10 +1291,19 @@ if (typeof window !== 'undefined') {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     getActiveMissionFromUrl,
+    isSandboxMode,
     isCommandMatchingExpected,
     validateMissionStep,
     loadMission,
     updateMissionBanner,
+    setupTerminalInput,
+    setupResetButton,
+    setupMissionNavButtons,
+    setupHintToggle,
+    setupModeControls,
+    handleNextMissionRedirect,
+    handleNextStepClick,
+    handlePrevStepClick,
     MISSION_TITLES
   };
 }

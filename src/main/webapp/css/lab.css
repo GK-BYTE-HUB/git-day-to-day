@@ -127,28 +127,87 @@
   color: #64748B;
 }
 
-.instruction-text {
+.instruction-text,
+#mission-instruction {
   font-family: var(--font-heading);
-  font-size: 1.05rem;
-  font-weight: 700;
+  font-size: 1.25rem;
+  font-weight: 800;
   line-height: 1.4;
   color: var(--text);
+  background-color: #FEF9C3;
+  border-left: 4px solid var(--cta, #FFD700);
+  padding: 10px 14px;
+  border-radius: 2px;
 }
 
 .instruction-hint {
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-  background-color: #FFFFFF;
-  border: 1px solid #000000;
-  padding: 6px 12px;
-  white-space: nowrap;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
-.instruction-hint strong {
-  color: var(--blue);
+#btn-show-hint.neo-btn {
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
+}
+
+#mission-hint-text {
+  display: none;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--blue, #3B82F6);
+  background-color: #FFFFFF;
+  border: 2px solid #000000;
+  padding: 6px 12px;
+  box-shadow: 2px 2px 0px 0px #000;
+  white-space: nowrap;
+}
+
+/* -----------------------------------------------------------------------------
+   Persistent Mode Switching Controls (Guided vs Practice Sandbox)
+   ----------------------------------------------------------------------------- */
+.lab-mode-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lab-mode-controls .mode-btn {
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 8px 18px;
+  background-color: #FFFFFF;
+  color: var(--text, #1C293C);
+  border: 2px solid #000000;
+  box-shadow: 3px 3px 0px 0px #000000;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.1s ease, color 0.1s ease;
+  user-select: none;
+}
+
+.lab-mode-controls .mode-btn:hover {
+  background-color: #F8FAFC;
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0px 0px #000000;
+}
+
+.lab-mode-controls .mode-btn.active {
+  background-color: #000000;
+  color: #FFFFFF;
+  border: 2px solid #000000;
+  box-shadow: 3px 3px 0px 0px var(--cta, #FFD700);
+  font-weight: 800;
+}
+
+.lab-mode-controls .mode-btn.active:hover {
+  transform: none;
+  box-shadow: 3px 3px 0px 0px var(--cta, #FFD700);
 }
 
 /* -----------------------------------------------------------------------------

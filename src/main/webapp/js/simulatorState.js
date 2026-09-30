@@ -36,11 +36,26 @@ function cloneState(state) {
 }
 
 /**
- * Returns a fresh, pristine deep clone of the canonical initialSimulatorState.
+ * Returns the initial simulator state.
+ * Checks localStorage for persisted 'git_lab_state' first;
+ * if found, safely parses and returns it; otherwise returns fresh initialSimulatorState.
  *
- * @returns {Object} Fresh initial simulator state
+ * @returns {Object} Fresh or persisted simulator state
  */
 function getInitialState() {
+  if (typeof localStorage !== 'undefined' && localStorage) {
+    try {
+      const saved = localStorage.getItem('git_lab_state');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to parse git_lab_state from localStorage:', e);
+    }
+  }
   return cloneState(initialSimulatorState);
 }
 

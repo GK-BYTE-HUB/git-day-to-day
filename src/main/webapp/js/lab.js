@@ -516,7 +516,11 @@ function echoTerminalCommand(commandText) {
 
   const promptSpan = document.createElement('span');
   promptSpan.className = 'terminal-prompt-inline';
-  promptSpan.textContent = 'git-user@lab:~$ ';
+  // Reflect the current cwd in echoed command prompts too
+  const cwd = (currentState && currentState.cwd) ? currentState.cwd : '/';
+  const cleanCwd = cwd.replace(/^\/+|\/+$/g, '');
+  const promptPath = cleanCwd ? `~/${cleanCwd}` : '~';
+  promptSpan.textContent = `git-user@lab:${promptPath}$ `;
 
   const textNode = document.createTextNode(commandText);
 
@@ -668,8 +672,18 @@ function renderUI(state) {
     return;
   }
 
+  // 0. Update terminal prompt label to reflect current working directory
+  const promptEl = document.getElementById('term-prompt-string');
+  if (promptEl) {
+    const cwd = state.cwd || '/';
+    // Map '/' to '~', '/src/' to '~/src', etc.
+    const cleanCwd = cwd.replace(/^\/+|\/+$/g, '');
+    const promptPath = cleanCwd ? `~/${cleanCwd}` : '~';
+    promptEl.textContent = `git-user@lab:${promptPath}$`;
+  }
+
   // 1. Render Left Column: File Tree (Top Half)
-  renderFileTree(state.fileSystem);
+  renderFileTree(state);
 
   // 2. Render Left Column: Working Directory & Staging Area (Bottom Half)
   renderWorkingAndStaging(state);
@@ -679,23 +693,23 @@ function renderUI(state) {
 }
 
 /**
- * Renders the File Tree list in the left column.
+ * Renders the File Tree list in the left column as a hierarchical nested tree.
+ * Items with paths like "src/app.js" are indented under their parent directory.
  *
- * @param {Array<Object>} fileSystem
+ * @param {Object} state - The full simulator state
  */
-function renderFileTree(fileSystem) {
+function renderFileTree(state) {
+  const fileSystem = Array.isArray(state.fileSystem) ? state.fileSystem : [];
   const listEl = document.getElementById('file-tree-list');
   const emptyEl = document.getElementById('file-tree-empty-msg');
   const countBadge = document.getElementById('file-count-badge');
   if (!listEl) return;
 
-  const items = Array.isArray(fileSystem) ? fileSystem : [];
-
   if (countBadge) {
-    countBadge.textContent = `${items.length} item${items.length === 1 ? '' : 's'}`;
+    countBadge.textContent = `${fileSystem.length} item${fileSystem.length === 1 ? '' : 's'}`;
   }
 
-  if (items.length === 0) {
+  if (fileSystem.length === 0) {
     if (emptyEl) emptyEl.style.display = 'flex';
     listEl.style.display = 'none';
     listEl.innerHTML = '';
@@ -706,29 +720,59 @@ function renderFileTree(fileSystem) {
   listEl.style.display = 'flex';
   listEl.innerHTML = '';
 
-  items.forEach(item => {
+  // Sort: directories first, then files; both sorted alphabetically by name
+  const sorted = [...fileSystem].sort((a, b) => {
+    if (a.type === 'directory' && b.type !== 'directory') return -1;
+    if (a.type !== 'directory' && b.type === 'directory') return 1;
+    return a.name.localeCompare(b.name);
+  });
+
+  sorted.forEach(item => {
+    // Calculate depth from path separators
+    // e.g. 'src' -> depth 0, 'src/app.js' -> depth 1
+    const pathParts = item.name.split('/').filter(Boolean);
+    const depth = pathParts.length - 1;
+    const displayName = pathParts[pathParts.length - 1];
+
     const li = document.createElement('li');
     li.className = `file-tree-item ${item.type === 'directory' ? 'directory' : ''}`;
+    // Indent by depth: 20px per level beyond root
+    li.style.paddingLeft = `${8 + depth * 20}px`;
+
+    // Tree connector prefix for nested items
+    if (depth > 0) {
+      li.classList.add('file-tree-nested');
+    }
 
     const nameGroup = document.createElement('div');
     nameGroup.className = 'file-name-group';
 
+    // Tree prefix connector for nested items
+    if (depth > 0) {
+      const connector = document.createElement('span');
+      connector.className = 'file-tree-connector';
+      connector.textContent = '└─ ';
+      connector.setAttribute('aria-hidden', 'true');
+      nameGroup.appendChild(connector);
+    }
+
     // File/Folder icon
     const iconSpan = document.createElement('span');
     if (item.type === 'directory') {
-      iconSpan.textContent = '📁 ';
-    } else if (item.name.endsWith('.html')) {
-      iconSpan.textContent = '🌐 ';
-    } else if (item.name.endsWith('.css')) {
-      iconSpan.textContent = '🎨 ';
-    } else if (item.name.endsWith('.js')) {
-      iconSpan.textContent = '⚡ ';
+      iconSpan.textContent = '📁';
+    } else if (displayName.endsWith('.html')) {
+      iconSpan.textContent = '🌐';
+    } else if (displayName.endsWith('.css')) {
+      iconSpan.textContent = '🎨';
+    } else if (displayName.endsWith('.js')) {
+      iconSpan.textContent = '⚡';
     } else {
-      iconSpan.textContent = '📄 ';
+      iconSpan.textContent = '📄';
     }
+    iconSpan.className = 'file-tree-icon';
 
     const nameSpan = document.createElement('span');
-    nameSpan.textContent = item.name;
+    nameSpan.textContent = displayName;
     nameSpan.style.fontFamily = 'var(--font-mono)';
     nameSpan.style.fontWeight = item.type === 'directory' ? '700' : '500';
 
@@ -881,7 +925,8 @@ function renderWorkingAndStaging(state) {
 
 /**
  * Renders the Commit Graph in the middle column.
- * Displays circular commit nodes with connection lines, IDs, messages, and branch pointers.
+ * Uses compact circular nodes positioned on a vertical rail with branch labels
+ * mounted cleanly to the right of each node.
  *
  * @param {Object} state
  */
@@ -918,81 +963,70 @@ function renderCommitGraph(state) {
   sortedCommits.forEach((commit, idx) => {
     const isHead = commit.id === headCommitId;
 
+    // Outer wrapper: holds rail line + the row content
     const wrapper = document.createElement('div');
     wrapper.className = 'graph-node-wrapper';
 
-    // Vertical connector line to commit below
-    if (idx < sortedCommits.length - 1) {
-      const line = document.createElement('div');
-      line.className = 'graph-connector-line';
-      wrapper.appendChild(line);
-    }
+    // Vertical rail connector line drawn between nodes (hidden on last)
+    const line = document.createElement('div');
+    line.className = 'graph-connector-line';
+    wrapper.appendChild(line);
 
-    const card = document.createElement('div');
-    card.className = `graph-node-card ${isHead ? 'active-head' : ''}`;
+    // --- Row: [circle][meta column] ---
+    const row = document.createElement('div');
+    row.className = 'graph-node-row';
 
-    // Circular commit node
+    // Circular commit dot
     const circle = document.createElement('div');
-    circle.className = 'graph-node-circle';
-    if (isHead) {
-      circle.style.backgroundColor = 'var(--cta, #FFD700)';
-    } else {
-      circle.style.backgroundColor = 'var(--blue, #3B82F6)';
-    }
+    circle.className = `graph-node-circle ${isHead ? 'graph-node-circle--head' : 'graph-node-circle--default'}`;
+    row.appendChild(circle);
 
-    const content = document.createElement('div');
-    content.className = 'graph-node-content';
+    // Right-side meta column
+    const meta = document.createElement('div');
+    meta.className = 'graph-node-meta';
 
-    const header = document.createElement('div');
-    header.className = 'graph-node-header';
-
-    const idGroup = document.createElement('div');
-    idGroup.style.display = 'flex';
-    idGroup.style.alignItems = 'center';
-    idGroup.style.gap = '6px';
-    idGroup.style.flexWrap = 'wrap';
+    // Top line: commit ID badge + branch tags + timestamp
+    const topLine = document.createElement('div');
+    topLine.className = 'graph-node-topline';
 
     const idBadge = document.createElement('span');
     idBadge.className = 'graph-node-id';
     idBadge.textContent = commit.id;
-    idGroup.appendChild(idBadge);
+    topLine.appendChild(idBadge);
 
-    // Branch tags pointing to this commit
-    Object.keys(branches).forEach(bName => {
-      if (branches[bName] === commit.id) {
-        const bTag = document.createElement('span');
-        bTag.className = `graph-branch-tag ${bName === currentBranch ? 'head' : ''}`;
-        bTag.textContent = bName === currentBranch ? `HEAD -> ${bName}` : bName;
-        idGroup.appendChild(bTag);
-      }
+    // Branch tags that point to this commit
+    const pointingBranches = Object.keys(branches).filter(b => branches[b] === commit.id);
+    pointingBranches.forEach(bName => {
+      const bTag = document.createElement('span');
+      const isActiveBranch = bName === currentBranch;
+      bTag.className = `graph-branch-tag${isActiveBranch ? ' head' : ''}`;
+      bTag.textContent = isActiveBranch ? `HEAD → ${bName}` : bName;
+      topLine.appendChild(bTag);
     });
 
     const timeSpan = document.createElement('span');
-    timeSpan.style.fontFamily = 'var(--font-mono)';
-    timeSpan.style.fontSize = '0.75rem';
-    timeSpan.style.color = '#64748B';
+    timeSpan.className = 'graph-node-timestamp';
     timeSpan.textContent = formatTimestamp(commit.timestamp);
+    topLine.appendChild(timeSpan);
 
-    header.appendChild(idGroup);
-    header.appendChild(timeSpan);
+    meta.appendChild(topLine);
 
+    // Commit message
     const msgDiv = document.createElement('div');
     msgDiv.className = 'graph-node-msg';
     msgDiv.textContent = commit.message || 'No commit message';
+    meta.appendChild(msgDiv);
 
+    // Files summary
     const filesDiv = document.createElement('div');
     filesDiv.className = 'graph-node-files';
     const fileCount = Array.isArray(commit.files) ? commit.files.length : 0;
     const filesList = Array.isArray(commit.files) ? commit.files.join(', ') : '';
     filesDiv.textContent = `📦 ${fileCount} file${fileCount === 1 ? '' : 's'}${filesList ? ': ' + filesList : ''}`;
+    meta.appendChild(filesDiv);
 
-    content.appendChild(header);
-    content.appendChild(msgDiv);
-    content.appendChild(filesDiv);
-
-    card.appendChild(circle);
-    card.appendChild(content);
-    wrapper.appendChild(card);
+    row.appendChild(meta);
+    wrapper.appendChild(row);
     timelineEl.appendChild(wrapper);
   });
 }

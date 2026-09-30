@@ -315,6 +315,25 @@
   background-color: #E2E8F0;
 }
 
+/* Nested file tree items */
+.file-tree-nested {
+  background-color: #F8FAFF;
+  border-color: #DBEAFE;
+}
+
+.file-tree-connector {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: #94A3B8;
+  flex-shrink: 0;
+  letter-spacing: -1px;
+}
+
+.file-tree-icon {
+  flex-shrink: 0;
+  margin-right: 2px;
+}
+
 /* Bottom Half: Working Directory & Staging Area */
 .working-staging-section {
   flex: 1 1 50%;
@@ -372,17 +391,17 @@
 }
 
 /* -----------------------------------------------------------------------------
-   Middle Column: Commit Graph
+   Middle Column: Commit Graph — Compact Circular Node Rail
    ----------------------------------------------------------------------------- */
 .commit-graph-body {
   flex: 1;
-  padding: 16px;
+  padding: 16px 12px;
   overflow-y: auto;
-  overflow-x: auto;
+  overflow-x: hidden;
   background-color: #FAF9F6;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 0;
 }
 
 .graph-branch-bar {
@@ -396,6 +415,7 @@
   font-family: var(--font-mono);
   font-size: 0.8rem;
   flex-shrink: 0;
+  margin-bottom: 16px;
 }
 
 .graph-head-badge {
@@ -418,32 +438,83 @@
   background-color: #FFFFFF;
 }
 
+/* Timeline: vertical stack of node wrappers */
 .graph-timeline {
   display: flex;
   flex-direction: column;
-  gap: 16px;
   width: 100%;
   position: relative;
 }
 
+/* Each node wrapper holds the rail line + the horizontal row */
 .graph-node-wrapper {
   position: relative;
   display: flex;
   flex-direction: column;
+  padding-bottom: 0;
 }
 
+/* Vertical connector rail drawn through the center of the circle column */
 .graph-connector-line {
   position: absolute;
-  left: 21px;
-  top: 30px;
-  bottom: -18px;
-  width: 4px;
-  background-color: #000000;
-  z-index: 1;
+  /* Center on the 24px circle: left offset = 8px (row padding) + 12px (circle center) - 2px (half line width) */
+  left: 19px;
+  top: 28px;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, #CBD5E1, #CBD5E1);
+  z-index: 0;
 }
 
 .graph-node-wrapper:last-child .graph-connector-line {
   display: none;
+}
+
+/* Horizontal row: circle on left, meta content on right */
+.graph-node-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 6px 8px 20px 8px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Compact circular commit dot */
+.graph-node-circle {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid #000000;
+  flex-shrink: 0;
+  margin-top: 2px;
+  box-shadow: 1px 1px 0px 0px #000;
+}
+
+.graph-node-circle--head {
+  background-color: var(--cta, #FFD700);
+  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.25), 1px 1px 0px 0px #000;
+}
+
+.graph-node-circle--default {
+  background-color: var(--blue, #3B82F6);
+}
+
+/* Right-side meta column */
+.graph-node-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Top line: id badge + branch tags + timestamp */
+.graph-node-topline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
 }
 
 .graph-branch-tag {
@@ -451,9 +522,11 @@
   color: #FFFFFF;
   border: 1px solid #000000;
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 700;
   padding: 1px 6px;
+  border-radius: 2px;
+  white-space: nowrap;
 }
 
 .graph-branch-tag.head {
@@ -461,65 +534,40 @@
   color: #000000;
 }
 
-.graph-node-card {
-  background-color: #FFFFFF;
-  border: 2px solid #000000;
-  box-shadow: 3px 3px 0px 0px #000;
-  padding: 12px 14px;
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  position: relative;
-}
-
-.graph-node-card.active-head {
-  border-color: #000000;
-  background-color: #FFFBEB;
-}
-
-.graph-node-circle {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background-color: var(--cta);
-  border: 2px solid #000000;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.graph-node-content {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-}
-
-.graph-node-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
 .graph-node-id {
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 700;
   background-color: #000000;
   color: #FFFFFF;
   padding: 1px 6px;
 }
 
+.graph-node-timestamp {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: #94A3B8;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
 .graph-node-msg {
   font-family: var(--font-heading);
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   font-weight: 700;
   color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .graph-node-files {
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: #64748B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* -----------------------------------------------------------------------------

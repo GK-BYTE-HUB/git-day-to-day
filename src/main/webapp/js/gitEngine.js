@@ -142,6 +142,40 @@ function getFolderDepth(pathStr) {
 }
 
 /**
+ * Resolves a target path against the current working directory (cwd).
+ * Returns a normalized path relative to root without leading or trailing slashes.
+ * e.g. cwd='/src/', target='app.js' => 'src/app.js'
+ *      cwd='/', target='app.js' => 'app.js'
+ *      cwd='/src/', target='/app.js' => 'app.js'
+ *
+ * @param {string} cwd
+ * @param {string} targetPath
+ * @returns {string}
+ */
+function resolvePath(cwd, targetPath) {
+  if (!targetPath || typeof targetPath !== 'string') return '';
+  let p = targetPath.replace(/\\/g, '/').trim();
+  let baseParts = [];
+  if (!p.startsWith('/')) {
+    const cleanCwd = (cwd || '/').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
+    if (cleanCwd) {
+      baseParts = cleanCwd.split('/').filter(Boolean);
+    }
+  }
+  const rawParts = p.split('/').filter(part => part !== '' && part !== '.');
+  for (const part of rawParts) {
+    if (part === '..') {
+      if (baseParts.length > 0) {
+        baseParts.pop();
+      }
+    } else {
+      baseParts.push(part);
+    }
+  }
+  return baseParts.join('/');
+}
+
+/**
  * Counts total non-directory files in state.fileSystem.
  *
  * @param {Array<Object>} fileSystem
@@ -168,6 +202,9 @@ function executeCommand(state, commandString) {
   const newState = safeCloneState(state || {});
 
   // Ensure baseline state structure
+  if (!newState.cwd || typeof newState.cwd !== 'string') {
+    newState.cwd = '/';
+  }
   if (!Array.isArray(newState.fileSystem)) {
     newState.fileSystem = [];
   }
@@ -322,7 +359,8 @@ function checkSandboxLimitsBefore(state, primaryCmd, args) {
   if (primaryCmd === 'mkdir') {
     const targets = args.slice(1).filter(a => !a.startsWith('-'));
     for (const dirName of targets) {
-      if (getFolderDepth(dirName) > SANDBOX_LIMITS.MAX_FOLDER_DEPTH) {
+      const fullPath = resolvePath(state.cwd, dirName);
+      if (getFolderDepth(fullPath) > SANDBOX_LIMITS.MAX_FOLDER_DEPTH) {
         return { message: `Sandbox limit reached: Maximum folder depth is ${SANDBOX_LIMITS.MAX_FOLDER_DEPTH}.` };
       }
     }
@@ -332,7 +370,8 @@ function checkSandboxLimitsBefore(state, primaryCmd, args) {
   if (primaryCmd === 'touch') {
     const targets = args.slice(1).filter(a => !a.startsWith('-'));
     for (const fileName of targets) {
-      const parts = fileName.replace(/\\/g, '/').replace(/^\/+|\/+$/g, '').split('/').filter(Boolean);
+      const fullPath = resolvePath(state.cwd, fileName);
+      const parts = fullPath.split('/').filter(Boolean);
       // Folder depth for a file is parts.length - 1
       if (parts.length - 1 > SANDBOX_LIMITS.MAX_FOLDER_DEPTH) {
         return { message: `Sandbox limit reached: Maximum folder depth is ${SANDBOX_LIMITS.MAX_FOLDER_DEPTH}.` };
@@ -343,9 +382,10 @@ function checkSandboxLimitsBefore(state, primaryCmd, args) {
     let newFilesCount = 0;
     const existingNames = new Set(state.fileSystem.map(f => f.name));
     for (const fileName of targets) {
-      if (!existingNames.has(fileName)) {
+      const fullPath = resolvePath(state.cwd, fileName);
+      if (!existingNames.has(fullPath)) {
         newFilesCount++;
-        existingNames.add(fileName);
+        existingNames.add(fullPath);
       }
     }
     if (currentFileCount + newFilesCount > SANDBOX_LIMITS.MAX_FILES) {
@@ -409,7 +449,8 @@ function handleMkdir(newState, args) {
   }
 
   for (const dirName of targets) {
-    const existing = newState.fileSystem.find(item => item.name === dirName);
+    const fullPath = resolvePath(newState.cwd, dirName);
+    const existing = newState.fileSystem.find(item => item.name === fullPath);
     if (existing) {
       return {
         newState,
@@ -420,8 +461,9 @@ function handleMkdir(newState, args) {
   }
 
   for (const dirName of targets) {
+    const fullPath = resolvePath(newState.cwd, dirName);
     newState.fileSystem.push({
-      name: dirName,
+      name: fullPath,
       type: 'directory'
     });
   }
@@ -452,10 +494,11 @@ function handleTouch(newState, args) {
   }
 
   for (const fileName of targets) {
-    const existing = newState.fileSystem.find(item => item.name === fileName);
+    const fullPath = resolvePath(newState.cwd, fileName);
+    const existing = newState.fileSystem.find(item => item.name === fullPath);
     if (!existing) {
       newState.fileSystem.push({
-        name: fileName,
+        name: fullPath,
         type: 'file',
         status: 'untracked',
         content: ''
@@ -472,17 +515,36 @@ function handleTouch(newState, args) {
 
 /**
  * Handler for 'ls'.
- * Lists items currently in state.fileSystem.
+ * Lists items currently in state.fileSystem that are direct children of cwd.
  *
  * @param {Object} newState
  * @param {Array<string>} args
  * @returns {{ newState: Object, outputMessage: string, success: boolean }}
  */
 function handleLs(newState, args) {
-  const fileNames = newState.fileSystem.map(item => item.name);
+  const cwd = newState.cwd || '/';
+  const cleanCwd = cwd.replace(/^\/+|\/+$/g, '');
+  const prefix = cleanCwd ? cleanCwd + '/' : '';
+
+  const directChildren = newState.fileSystem.filter(item => {
+    if (!item || !item.name) return false;
+    if (prefix) {
+      if (!item.name.startsWith(prefix)) return false;
+      const remainder = item.name.slice(prefix.length);
+      return remainder.length > 0 && !remainder.includes('/');
+    } else {
+      return !item.name.includes('/');
+    }
+  });
+
+  const names = directChildren.map(item => {
+    const parts = item.name.split('/');
+    return parts[parts.length - 1];
+  });
+
   return {
     newState,
-    outputMessage: fileNames.join('  '),
+    outputMessage: names.join('  '),
     success: true
   };
 }
@@ -539,22 +601,50 @@ function handleRm(newState, args) {
  * @returns {{ newState: Object, outputMessage: string, success: boolean }}
  */
 function handleCd(newState, args) {
-  if (args.length < 2 || args[1] === '~' || args[1] === '/' || args[1] === '.') {
+  // If no directory specified, or '~' or '/' -> return to root '/'
+  if (args.length < 2 || args[1] === '~' || args[1] === '/') {
+    newState.cwd = '/';
     return {
       newState,
       outputMessage: '',
       success: true
     };
   }
+
   const target = args[1];
-  if (target === '..') {
+
+  // Current directory '.'
+  if (target === '.') {
+    if (!newState.cwd) {
+      newState.cwd = '/';
+    }
     return {
       newState,
       outputMessage: '',
       success: true
     };
   }
-  const dir = newState.fileSystem.find(item => item.name === target && item.type === 'directory');
+
+  // Parent directory '..'
+  if (target === '..') {
+    const cleanCwd = (newState.cwd || '/').replace(/^\/+|\/+$/g, '');
+    if (!cleanCwd) {
+      newState.cwd = '/';
+    } else {
+      const parts = cleanCwd.split('/').filter(Boolean);
+      parts.pop();
+      newState.cwd = parts.length === 0 ? '/' : '/' + parts.join('/') + '/';
+    }
+    return {
+      newState,
+      outputMessage: '',
+      success: true
+    };
+  }
+
+  // Target directory path relative to cwd or root
+  const resolvedTarget = resolvePath(newState.cwd, target);
+  const dir = newState.fileSystem.find(item => item.name === resolvedTarget && item.type === 'directory');
   if (!dir) {
     return {
       newState,
@@ -562,6 +652,8 @@ function handleCd(newState, args) {
       success: false
     };
   }
+
+  newState.cwd = '/' + resolvedTarget + '/';
   return {
     newState,
     outputMessage: '',
@@ -1998,6 +2090,21 @@ function runTests() {
       global.CustomEvent = originalCustomEvent;
     }
   }
+
+  // 20. Directory Traversal & Hierarchical File Operations
+  let dirState = { cwd: '/', fileSystem: [], git: { initialized: true, stagingArea: [], branches: { main: null }, head: 'main', commits: [] } };
+  dirState = executeCommand(dirState, 'mkdir src').newState;
+  assert('mkdir src creates directory', dirState.fileSystem.some(f => f.name === 'src' && f.type === 'directory'));
+  dirState = executeCommand(dirState, 'cd src').newState;
+  assert('cd src updates cwd to /src/', dirState.cwd === '/src/');
+  dirState = executeCommand(dirState, 'touch app.js').newState;
+  assert('touch app.js inside /src/ prefixes path as src/app.js', dirState.fileSystem.some(f => f.name === 'src/app.js'));
+  const rLsSub = executeCommand(dirState, 'ls');
+  assert('ls inside /src/ only lists direct child app.js', rLsSub.outputMessage === 'app.js');
+  dirState = executeCommand(dirState, 'cd ..').newState;
+  assert('cd .. returns to root /', dirState.cwd === '/');
+  const rLsRoot = executeCommand(dirState, 'ls');
+  assert('ls at root only lists direct child src', rLsRoot.outputMessage === 'src');
 
   const passed = tests.filter(t => t.passed).length;
   const failed = tests.filter(t => !t.passed).length;

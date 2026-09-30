@@ -6,6 +6,7 @@
  */
 
 const initialSimulatorState = {
+  cwd: '/',
   fileSystem: [],
   git: {
     initialized: false,
@@ -51,6 +52,7 @@ function getInitialState() {
  */
 function getSandboxInitialState() {
   return {
+    cwd: '/',
     fileSystem: [
       { name: "index.html", status: "tracked_unmodified", content: "<h1>Welcome to My Website</h1>" },
       { name: "style.css", status: "tracked_unmodified", content: "body { font-family: sans-serif; margin: 0; }" },

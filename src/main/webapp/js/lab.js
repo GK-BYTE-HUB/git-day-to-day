@@ -99,6 +99,9 @@ if (typeof document !== 'undefined') {
     // 4. Wire up Persistent Mode Controls (Guided vs Practice Sandbox)
     setupModeControls();
 
+    // 5. Wire up Notepad Modal for In-Browser File Editing
+    setupNotepadModal();
+
     // 5. Sandbox Mode check vs Guided Mission mode
     if (isSandboxMode()) {
       // Entirely hide the top banner in sandbox mode
@@ -480,6 +483,170 @@ function setupHintToggle() {
       btn.textContent = 'Show Hint';
     }
   });
+}
+
+// =============================================================================
+// Notepad Modal & File Editing (Phase 4 Add-on 1)
+// =============================================================================
+
+let currentEditingFilePath = null;
+let notepadModalInitialized = false;
+
+/**
+ * Opens the Notepad modal for editing the specified file.
+ * Populates textarea with current content and updates character count.
+ *
+ * @param {string} filePath - Target file path
+ */
+function openNotepad(filePath) {
+  if (!filePath) return;
+  currentEditingFilePath = filePath;
+
+  const modal = document.getElementById('notepad-modal');
+  const filenameEl = document.getElementById('notepad-filename');
+  const textarea = document.getElementById('notepad-textarea');
+  const charCountEl = document.getElementById('notepad-char-count');
+  if (!modal || !textarea) return;
+
+  // Ensure modal listeners are wired
+  setupNotepadModal();
+
+  // Find file in currentState.fileSystem
+  const fileSystem = (currentState && Array.isArray(currentState.fileSystem)) ? currentState.fileSystem : [];
+  let file = fileSystem.find(f => f.name === filePath && f.type !== 'directory');
+  if (!file) {
+    const cwd = (currentState && currentState.cwd) ? currentState.cwd : '/';
+    const cleanCwd = cwd.replace(/^\/+|\/+$/g, '');
+    const prefix = cleanCwd ? cleanCwd + '/' : '';
+    file = fileSystem.find(f => (f.name === prefix + filePath || f.name === filePath) && f.type !== 'directory');
+  }
+
+  const content = (file && file.content !== undefined && file.content !== null) ? file.content : '';
+
+  if (filenameEl) {
+    filenameEl.textContent = filePath;
+  }
+  textarea.value = content;
+  if (charCountEl) {
+    charCountEl.textContent = `${content.length} / 500 chars`;
+    charCountEl.style.color = content.length >= 500 ? 'var(--error, #FF0000)' : '';
+    charCountEl.style.fontWeight = content.length >= 500 ? 'bold' : '';
+  }
+
+  modal.style.display = 'flex';
+  modal.setAttribute('aria-hidden', 'false');
+  textarea.focus();
+}
+
+/**
+ * Closes the Notepad modal and clears its text area.
+ */
+function closeNotepad() {
+  const modal = document.getElementById('notepad-modal');
+  const textarea = document.getElementById('notepad-textarea');
+  if (modal) {
+    modal.style.display = 'none';
+    modal.setAttribute('aria-hidden', 'true');
+  }
+  if (textarea) {
+    textarea.value = '';
+  }
+  currentEditingFilePath = null;
+}
+
+/**
+ * Wires the Notepad modal event handlers (input counting, Cancel, and Save).
+ */
+function setupNotepadModal() {
+  if (notepadModalInitialized) return;
+  notepadModalInitialized = true;
+
+  const modal = document.getElementById('notepad-modal');
+  const textarea = document.getElementById('notepad-textarea');
+  const charCount = document.getElementById('notepad-char-count');
+  const btnCancel = document.getElementById('btn-notepad-cancel');
+  const btnSave = document.getElementById('btn-notepad-save');
+
+  // Real-time character count on input
+  if (textarea && charCount) {
+    textarea.addEventListener('input', () => {
+      const len = textarea.value.length;
+      charCount.textContent = `${len} / 500 chars`;
+      if (len >= 500) {
+        charCount.style.color = 'var(--error, #FF0000)';
+        charCount.style.fontWeight = 'bold';
+      } else {
+        charCount.style.color = '';
+        charCount.style.fontWeight = '';
+      }
+    });
+  }
+
+  // Cancel button
+  if (btnCancel) {
+    btnCancel.addEventListener('click', () => {
+      closeNotepad();
+    });
+  }
+
+  // Backdrop click to cancel
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        closeNotepad();
+      }
+    });
+  }
+
+  // Escape key to cancel
+  if (typeof document !== 'undefined') {
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal && modal.style.display === 'flex') {
+        closeNotepad();
+      }
+    });
+  }
+
+  // Save button
+  if (btnSave) {
+    btnSave.addEventListener('click', () => {
+      if (!currentEditingFilePath || !textarea) return;
+      const newContent = textarea.value;
+
+      let result;
+      if (typeof window !== 'undefined' && window.GitEngine && typeof window.GitEngine.editFileContent === 'function') {
+        result = window.GitEngine.editFileContent(currentState, currentEditingFilePath, newContent);
+      } else if (typeof window !== 'undefined' && typeof window.editFileContent === 'function') {
+        result = window.editFileContent(currentState, currentEditingFilePath, newContent);
+      } else if (typeof editFileContent === 'function') {
+        result = editFileContent(currentState, currentEditingFilePath, newContent);
+      } else {
+        result = {
+          newState: currentState,
+          success: false,
+          outputMessage: 'GitEngine.editFileContent is not available.'
+        };
+      }
+
+      if (!result.success) {
+        alert(result.outputMessage || 'Sandbox limit reached: File content cannot exceed 500 characters.');
+        return;
+      }
+
+      currentState = result.newState;
+
+      if (!isSandboxMode() && typeof localStorage !== 'undefined' && localStorage) {
+        try {
+          localStorage.setItem('git_lab_state', JSON.stringify(currentState));
+        } catch (storageErr) {
+          console.warn('Failed to save git_lab_state to localStorage:', storageErr);
+        }
+      }
+
+      renderUI(currentState);
+      closeNotepad();
+    });
+  }
 }
 
 // =============================================================================
@@ -945,9 +1112,18 @@ function renderFileTree(state) {
     const displayName = pathParts[pathParts.length - 1];
 
     const li = document.createElement('li');
-    li.className = `file-tree-item ${item.type === 'directory' ? 'directory' : ''}`;
+    li.className = `file-tree-item ${item.type === 'directory' ? 'directory' : 'file-clickable'}`;
     // Indent by depth: 20px per level beyond root
     li.style.paddingLeft = `${8 + depth * 20}px`;
+
+    // Attach click event to file items (excluding directories) to open Notepad
+    if (item.type !== 'directory') {
+      li.title = `Click to edit ${item.name}`;
+      li.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openNotepad(item.name);
+      });
+    }
 
     // Tree connector prefix for nested items
     if (depth > 0) {
@@ -1279,6 +1455,9 @@ if (typeof window !== 'undefined') {
   window.handlePrevStepClick = handlePrevStepClick;
   window.validateMissionStep = validateMissionStep;
   window.isCommandMatchingExpected = isCommandMatchingExpected;
+  window.openNotepad = openNotepad;
+  window.closeNotepad = closeNotepad;
+  window.setupNotepadModal = setupNotepadModal;
   window.LabController = {
     getCurrentState: () => currentState,
     setCurrentState: (s) => {
@@ -1302,7 +1481,10 @@ if (typeof window !== 'undefined') {
       updateMissionBanner();
     },
     loadMission,
-    updateMissionBanner
+    updateMissionBanner,
+    openNotepad,
+    closeNotepad,
+    setupNotepadModal
   };
 }
 
@@ -1322,6 +1504,9 @@ if (typeof module !== 'undefined' && module.exports) {
     handleNextMissionRedirect,
     handleNextStepClick,
     handlePrevStepClick,
+    openNotepad,
+    closeNotepad,
+    setupNotepadModal,
     MISSION_TITLES
   };
 }

@@ -791,3 +791,185 @@
     border-bottom: 2px solid #000000;
   }
 }
+
+/* =============================================================================
+   Notepad Modal (In-Browser File Editing Dialog)
+   ============================================================================= */
+#notepad-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(2px);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.notepad-modal-card {
+  background-color: #FFFFFF;
+  border: var(--border-thick, 3px solid #000);
+  border-radius: var(--border-radius, 0);
+  box-shadow: var(--shadow-lg, 8px 8px 0px 0px #000);
+  width: 100%;
+  max-width: 680px;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  animation: notepadPopIn 0.15s ease-out;
+}
+
+@keyframes notepadPopIn {
+  from {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.notepad-modal-header {
+  background-color: var(--bg, #F4F4F0);
+  border-bottom: var(--border-thick, 3px solid #000);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.notepad-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notepad-file-icon {
+  font-size: 1.2rem;
+}
+
+.notepad-title-prefix {
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #64748B;
+  letter-spacing: 0.5px;
+}
+
+.notepad-filename-title {
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text, #1C293C);
+  background-color: var(--cta, #FFD700);
+  padding: 2px 8px;
+  border: 2px solid #000000;
+  border-radius: 0;
+  margin: 0;
+}
+
+.notepad-char-count {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #475569;
+  background-color: #E2E8F0;
+  border: 2px solid #000000;
+  box-shadow: 2px 2px 0px 0px #000000;
+  padding: 3px 10px;
+  border-radius: 0;
+}
+
+.notepad-modal-body {
+  padding: 16px 20px;
+  background-color: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+}
+
+.notepad-textarea {
+  width: 100%;
+  min-height: 250px;
+  height: 280px;
+  max-height: 50vh;
+  resize: vertical;
+  background-color: #FAFAFA;
+  border: 2px solid #000000;
+  border-radius: 0;
+  box-shadow: inset 2px 2px 0px 0px rgba(0, 0, 0, 0.08);
+  padding: 14px;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text, #1C293C);
+  outline: none;
+  display: block;
+}
+
+.notepad-textarea:focus {
+  outline: none;
+  border-color: #000000;
+  background-color: #FFFFFF;
+  box-shadow: 3px 3px 0px 0px #000000;
+}
+
+.notepad-modal-footer {
+  background-color: var(--bg, #F4F4F0);
+  border-top: var(--border-thick, 3px solid #000);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.notepad-btn-cancel {
+  background-color: #FFFFFF;
+  color: #000000;
+  border: 2px solid #000000;
+  box-shadow: 2px 2px 0px 0px #000000;
+}
+
+.notepad-btn-cancel:hover {
+  background-color: #E2E8F0;
+  box-shadow: 1px 1px 0px 0px #000000;
+  transform: translate(1px, 1px);
+}
+
+.notepad-btn-save {
+  background-color: var(--success, #00FF00);
+  color: #000000;
+  border: 2px solid #000000;
+  box-shadow: 2px 2px 0px 0px #000000;
+}
+
+.notepad-btn-save:hover {
+  background-color: #22C55E;
+  box-shadow: 1px 1px 0px 0px #000000;
+  transform: translate(1px, 1px);
+}
+
+/* File Tree Item Clickable Highlight for Editing */
+.file-tree-item.file-clickable {
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.file-tree-item.file-clickable:hover {
+  background-color: #FEF08A;
+  border-color: #000000;
+}
+
+.file-tree-item.file-clickable:active {
+  background-color: #FDE047;
+}
+

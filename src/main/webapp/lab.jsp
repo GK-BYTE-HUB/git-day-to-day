@@ -195,6 +195,35 @@
     </div>
 </div>
 
+<!-- =========================================================================
+     Notepad Modal for In-Browser File Editing
+     ========================================================================= -->
+<div id="notepad-modal" class="notepad-modal-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="notepad-filename">
+    <div class="notepad-modal-card neo-card">
+        <div class="notepad-modal-header">
+            <div class="notepad-title-group">
+                <span class="notepad-file-icon" aria-hidden="true">&#9998;</span>
+                <span class="notepad-title-prefix">Editing:</span>
+                <h3 id="notepad-filename" class="notepad-filename-title">file.txt</h3>
+            </div>
+            <span id="notepad-char-count" class="notepad-char-count">0 / 500 chars</span>
+        </div>
+        <div class="notepad-modal-body">
+            <textarea
+                id="notepad-textarea"
+                class="notepad-textarea"
+                maxlength="500"
+                placeholder="Type file contents here (max 500 characters)..."
+                spellcheck="false"
+            ></textarea>
+        </div>
+        <div class="notepad-modal-footer">
+            <button type="button" id="btn-notepad-cancel" class="neo-btn notepad-btn-cancel">Cancel</button>
+            <button type="button" id="btn-notepad-save" class="neo-btn notepad-btn-save">Save</button>
+        </div>
+    </div>
+</div>
+
 <!-- Git Engine & State Model Scripts -->
 <script src="${pageContext.request.contextPath}/js/progress.js"></script>
 <script src="${pageContext.request.contextPath}/js/simulatorState.js"></script>

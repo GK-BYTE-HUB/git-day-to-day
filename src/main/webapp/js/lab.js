@@ -103,7 +103,7 @@ if (typeof document !== 'undefined') {
     // 5. Wire up Notepad Modal for In-Browser File Editing
     setupNotepadModal();
 
-    // 5. Sandbox Mode check vs Guided Mission mode
+    // 6. Sandbox Mode check vs Guided Mission mode
     if (isSandboxMode()) {
       // Entirely hide the top banner in sandbox mode
       const banner = document.querySelector('.mission-control-banner');
@@ -121,7 +121,7 @@ if (typeof document !== 'undefined') {
       loadMission();
     }
 
-    // 6. Wire up Terminal Screen click-to-focus
+    // 7. Wire up Terminal Screen click-to-focus
     const terminalScreen = document.getElementById('terminal-screen');
     const terminalInput = document.getElementById('terminal-input');
     if (terminalScreen && terminalInput) {
@@ -511,9 +511,6 @@ function openNotepad(filePath) {
   const charCountEl = document.getElementById('notepad-char-count');
   if (!modal || !textarea) return;
 
-  // Ensure modal listeners are wired
-  setupNotepadModal();
-
   // Find file in currentState.fileSystem
   const fileSystem = (currentState && Array.isArray(currentState.fileSystem)) ? currentState.fileSystem : [];
   let file = fileSystem.find(f => f.name === filePath && f.type !== 'directory');
@@ -619,10 +616,6 @@ function setupNotepadModal() {
       let result;
       if (typeof window !== 'undefined' && window.GitEngine && typeof window.GitEngine.editFileContent === 'function') {
         result = window.GitEngine.editFileContent(currentState, currentEditingFilePath, newContent);
-      } else if (typeof window !== 'undefined' && typeof window.editFileContent === 'function') {
-        result = window.editFileContent(currentState, currentEditingFilePath, newContent);
-      } else if (typeof editFileContent === 'function') {
-        result = editFileContent(currentState, currentEditingFilePath, newContent);
       } else {
         result = {
           newState: currentState,
@@ -1569,26 +1562,6 @@ function formatTimestamp(isoStr) {
 // =============================================================================
 
 if (typeof window !== 'undefined') {
-  window.activeMission = activeMission;
-  window.isSandboxMode = isSandboxMode;
-  window.currentMissionSteps = currentMissionSteps;
-  window.currentStepIndex = currentStepIndex;
-  window.loadMission = loadMission;
-  window.updateMissionBanner = updateMissionBanner;
-  window.setupTerminalInput = setupTerminalInput;
-  window.setupResetButton = setupResetButton;
-  window.setupMissionNavButtons = setupMissionNavButtons;
-  window.setupHintToggle = setupHintToggle;
-  window.setupModeControls = setupModeControls;
-  window.handleNextMissionRedirect = handleNextMissionRedirect;
-  window.handleNextStepClick = handleNextStepClick;
-  window.handlePrevStepClick = handlePrevStepClick;
-  window.validateMissionStep = validateMissionStep;
-  window.isCommandMatchingExpected = isCommandMatchingExpected;
-  window.openNotepad = openNotepad;
-  window.closeNotepad = closeNotepad;
-  window.setupNotepadModal = setupNotepadModal;
-  window.renderRemoteServer = renderRemoteServer;
   window.LabController = {
     getCurrentState: () => currentState,
     setCurrentState: (s) => {
@@ -1616,8 +1589,29 @@ if (typeof window !== 'undefined') {
     openNotepad,
     closeNotepad,
     setupNotepadModal,
-    renderRemoteServer
+    renderRemoteServer,
+    // Convenience: expose individual functions at top-level so that
+    // internal lab.js calls (window.activeMission, window.currentStepIndex, etc.)
+    // and any legacy callers that relied on flat window.* still work.
+    isSandboxMode,
+    loadMission,
+    updateMissionBanner,
+    setupTerminalInput,
+    setupResetButton,
+    setupMissionNavButtons,
+    setupHintToggle,
+    setupModeControls,
+    handleNextMissionRedirect,
+    handleNextStepClick,
+    handlePrevStepClick,
+    validateMissionStep,
+    isCommandMatchingExpected
   };
+  // Mirror mutable state variables to window so that inline reads
+  // (window.activeMission, window.currentStepIndex, etc.) still resolve.
+  window.activeMission = activeMission;
+  window.currentMissionSteps = currentMissionSteps;
+  window.currentStepIndex = currentStepIndex;
 }
 
 if (typeof module !== 'undefined' && module.exports) {

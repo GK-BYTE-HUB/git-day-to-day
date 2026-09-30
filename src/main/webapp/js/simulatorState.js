@@ -98,9 +98,9 @@ function getSandboxInitialState() {
   return {
     cwd: '/',
     fileSystem: [
-      { name: "index.html", status: "tracked_unmodified", content: "<h1>Welcome to My Website</h1>" },
-      { name: "style.css", status: "tracked_unmodified", content: "body { font-family: sans-serif; margin: 0; }" },
-      { name: "app.js", status: "tracked_unmodified", content: "console.log('App ready');" }
+      { name: "index.html", type: "file", status: "tracked_unmodified", content: "<h1>Welcome to My Website</h1>" },
+      { name: "style.css", type: "file", status: "tracked_unmodified", content: "body { font-family: sans-serif; margin: 0; }" },
+      { name: "app.js", type: "file", status: "tracked_unmodified", content: "console.log('App ready');" }
     ],
     git: {
       initialized: true,
@@ -125,18 +125,20 @@ function getSandboxInitialState() {
   };
 }
 
-// Attach to browser global scope
+// Attach to browser global scope via single namespace object
 if (typeof window !== 'undefined') {
-  window.initialSimulatorState = initialSimulatorState;
-  window.getInitialState = getInitialState;
-  window.cloneState = cloneState;
-  window.getSandboxInitialState = getSandboxInitialState;
   window.SimulatorStateManager = {
     initialSimulatorState,
     getInitialState,
     cloneState,
     getSandboxInitialState
   };
+  // Convenience aliases so lab.js and other consumers can call the
+  // functions directly without qualifying the namespace.
+  window.initialSimulatorState = initialSimulatorState;
+  window.getInitialState = getInitialState;
+  window.cloneState = cloneState;
+  window.getSandboxInitialState = getSandboxInitialState;
 }
 
 // Support CommonJS/Node modules

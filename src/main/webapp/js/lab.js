@@ -1067,6 +1067,9 @@ function renderUI(state) {
 
   // 3. Render Middle Column: Commit Graph
   renderCommitGraph(state);
+
+  // 4. Render Middle Column: Remote Server (GitHub)
+  renderRemoteServer(state);
 }
 
 /**
@@ -1418,6 +1421,130 @@ function renderCommitGraph(state) {
 }
 
 /**
+ * Renders the Remote Server panel (GitHub simulation).
+ * Displays remote repository URL, remote branches, and commit pointers.
+ *
+ * @param {Object} state - The full simulator state
+ */
+function renderRemoteServer(state) {
+  const panel = document.getElementById('remote-server-panel');
+  if (!panel) return;
+
+  const statusTag = document.getElementById('remote-status-tag');
+  const repoBar = document.getElementById('remote-repo-bar');
+  const urlEl = document.getElementById('remote-repo-url');
+  const emptyEl = document.getElementById('remote-empty-placeholder');
+  const listEl = document.getElementById('remote-branches-list');
+
+  const remote = (state && state.git && state.git.remote) ? state.git.remote : null;
+  const hasRemoteUrl = remote && typeof remote.url === 'string' && remote.url.trim().length > 0;
+
+  if (!hasRemoteUrl) {
+    if (statusTag) {
+      statusTag.textContent = 'NO REMOTE';
+      statusTag.className = 'remote-status-badge disconnected';
+    }
+    if (repoBar) {
+      repoBar.style.display = 'none';
+    }
+    if (emptyEl) {
+      emptyEl.style.display = 'flex';
+      emptyEl.innerHTML = `
+        <span class="remote-cloud-icon">&#9729;</span>
+        <p>No remote repository connected. Use <code>git remote add origin &lt;url&gt;</code></p>
+      `;
+    }
+    if (listEl) {
+      listEl.style.display = 'none';
+      listEl.innerHTML = '';
+    }
+    return;
+  }
+
+  // Remote URL is configured
+  const remoteName = remote.name || 'origin';
+  const remoteUrl = remote.url;
+  const branches = (remote.branches && typeof remote.branches === 'object') ? remote.branches : {};
+  const branchNames = Object.keys(branches);
+
+  if (statusTag) {
+    statusTag.textContent = 'CONNECTED';
+    statusTag.className = 'remote-status-badge connected';
+  }
+
+  if (repoBar && urlEl) {
+    repoBar.style.display = 'flex';
+    urlEl.textContent = `${remoteName} (${remoteUrl})`;
+  }
+
+  if (branchNames.length === 0) {
+    if (emptyEl) {
+      emptyEl.style.display = 'flex';
+      emptyEl.innerHTML = `
+        <span class="remote-cloud-icon">&#9729;</span>
+        <p>Remote connected! No branches pushed yet.<br>Use <code>git push ${remoteName} &lt;branch&gt;</code></p>
+      `;
+    }
+    if (listEl) {
+      listEl.style.display = 'none';
+      listEl.innerHTML = '';
+    }
+    return;
+  }
+
+  // Remote has branches
+  if (emptyEl) {
+    emptyEl.style.display = 'none';
+  }
+
+  if (listEl) {
+    listEl.style.display = 'flex';
+    listEl.innerHTML = '';
+
+    const commits = (state && state.git && Array.isArray(state.git.commits)) ? state.git.commits : [];
+
+    branchNames.forEach(bName => {
+      const commitId = branches[bName];
+      const commit = commits.find(c => c.id === commitId);
+      const commitMsg = commit ? commit.message : '';
+
+      const li = document.createElement('li');
+      li.className = 'remote-branch-item';
+
+      const meta = document.createElement('div');
+      meta.className = 'remote-branch-meta';
+
+      const tag = document.createElement('span');
+      tag.className = 'remote-branch-tag';
+      tag.textContent = `${remoteName}/${bName}`;
+
+      const pointer = document.createElement('span');
+      pointer.className = 'remote-branch-pointer';
+      pointer.textContent = '→';
+
+      const badge = document.createElement('span');
+      badge.className = 'remote-commit-badge';
+      badge.textContent = commitId || 'none';
+
+      meta.appendChild(tag);
+      meta.appendChild(pointer);
+      meta.appendChild(badge);
+      li.appendChild(meta);
+
+      if (commitMsg) {
+        const msg = document.createElement('span');
+        msg.className = 'remote-commit-msg';
+        msg.title = commitMsg;
+        msg.textContent = `"${commitMsg}"`;
+        li.appendChild(msg);
+      }
+
+      listEl.appendChild(li);
+    });
+  }
+}
+
+/**
  * Formats an ISO date string into human-friendly time.
  *
  * @param {string} isoStr
@@ -1458,6 +1585,7 @@ if (typeof window !== 'undefined') {
   window.openNotepad = openNotepad;
   window.closeNotepad = closeNotepad;
   window.setupNotepadModal = setupNotepadModal;
+  window.renderRemoteServer = renderRemoteServer;
   window.LabController = {
     getCurrentState: () => currentState,
     setCurrentState: (s) => {
@@ -1484,7 +1612,8 @@ if (typeof window !== 'undefined') {
     updateMissionBanner,
     openNotepad,
     closeNotepad,
-    setupNotepadModal
+    setupNotepadModal,
+    renderRemoteServer
   };
 }
 
@@ -1507,6 +1636,7 @@ if (typeof module !== 'undefined' && module.exports) {
     openNotepad,
     closeNotepad,
     setupNotepadModal,
+    renderRemoteServer,
     MISSION_TITLES
   };
 }

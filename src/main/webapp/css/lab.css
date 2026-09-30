@@ -450,6 +450,203 @@
 }
 
 /* -----------------------------------------------------------------------------
+   Middle Column: Split Container (Commit Graph Top + Remote Server Bottom)
+   ----------------------------------------------------------------------------- */
+.middle-col-split {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+  overflow: hidden;
+}
+
+.commit-graph-card {
+  flex: 1 1 56%;
+  min-height: 260px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.remote-server-card {
+  flex: 1 1 44%;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: #FAF5FF;
+}
+
+/* Remote Server Header */
+.remote-header {
+  background-color: #EDE9FE;
+  border-bottom: var(--border-thick, 3px solid #000);
+}
+
+.remote-status-badge {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border: 2px solid #000000;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.remote-status-badge.connected {
+  background-color: var(--success, #00FF00);
+  box-shadow: 2px 2px 0px 0px #000000;
+  color: #000000;
+}
+
+.remote-status-badge.disconnected {
+  background-color: #E2E8F0;
+  color: #64748B;
+  box-shadow: 1px 1px 0px 0px #000000;
+}
+
+/* Remote Server Body */
+.remote-server-body {
+  flex: 1;
+  padding: 12px 14px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background-color: #FAF5FF;
+}
+
+.remote-repo-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #FFFFFF;
+  border: 2px solid #000000;
+  box-shadow: 2px 2px 0px 0px #000000;
+  padding: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  word-break: break-all;
+  flex-shrink: 0;
+}
+
+.remote-repo-label {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  color: #6B21A8;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+}
+
+.remote-repo-url {
+  color: #1E293B;
+  font-weight: 600;
+}
+
+.remote-branches-container {
+  flex: 1;
+}
+
+.remote-branches-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.remote-branch-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background-color: #FFFFFF;
+  border: 2px solid #000000;
+  box-shadow: 2px 2px 0px 0px #000000;
+  padding: 6px 10px;
+  transition: transform 0.1s ease;
+}
+
+.remote-branch-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 3px 3px 0px 0px #000000;
+}
+
+.remote-branch-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.remote-branch-tag {
+  background-color: #DDD6FE;
+  color: #4C1D95;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border: 1px solid #000000;
+}
+
+.remote-branch-pointer {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #64748B;
+}
+
+.remote-commit-badge {
+  background-color: var(--cta, #FFD700);
+  color: #000000;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border: 1px solid #000000;
+}
+
+.remote-commit-msg {
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  color: #334155;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 170px;
+}
+
+.remote-empty-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #64748B;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  padding: 20px 14px;
+  gap: 8px;
+  border: 2px dashed #C4B5FD;
+  background-color: #FFFFFF;
+}
+
+.remote-cloud-icon {
+  font-size: 1.8rem;
+  color: #8B5CF6;
+}
+
+.remote-empty-placeholder code {
+  background-color: #EDE9FE;
+  color: #5B21B6;
+  padding: 2px 6px;
+  border: 1px solid #000000;
+  font-weight: 600;
+}
+
+/* -----------------------------------------------------------------------------
    Middle Column: Commit Graph — Compact Circular Node Rail
    ----------------------------------------------------------------------------- */
 .commit-graph-body {
@@ -770,6 +967,20 @@
   .lab-col-card {
     min-height: 480px;
     height: 520px;
+  }
+
+  .middle-col-split {
+    height: auto;
+  }
+
+  .commit-graph-card {
+    min-height: 380px;
+    height: 420px;
+  }
+
+  .remote-server-card {
+    min-height: 220px;
+    height: auto;
   }
 }
 

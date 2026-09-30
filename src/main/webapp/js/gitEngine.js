@@ -573,7 +573,8 @@ function handleRm(newState, args) {
   }
 
   for (const target of targets) {
-    const idx = newState.fileSystem.findIndex(item => item.name === target);
+    const resolvedPath = resolvePath(newState.cwd, target);
+    const idx = newState.fileSystem.findIndex(item => item.name === resolvedPath);
     if (idx === -1) {
       return {
         newState,
@@ -583,7 +584,7 @@ function handleRm(newState, args) {
     }
     newState.fileSystem.splice(idx, 1);
     if (Array.isArray(newState.git.stagingArea)) {
-      const sIdx = newState.git.stagingArea.indexOf(target);
+      const sIdx = newState.git.stagingArea.indexOf(resolvedPath);
       if (sIdx !== -1) {
         newState.git.stagingArea.splice(sIdx, 1);
       }
@@ -1061,7 +1062,8 @@ function handleGitAdd(newState, args) {
   }
 
   for (const target of targets) {
-    const file = (newState.fileSystem || []).find(item => item.name === target && item.type !== 'directory');
+    const resolvedPath = resolvePath(newState.cwd, target);
+    const file = (newState.fileSystem || []).find(item => item.name === resolvedPath && item.type !== 'directory');
     if (!file) {
       return {
         newState,

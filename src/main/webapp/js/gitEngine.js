@@ -16,10 +16,11 @@ const SANDBOX_LIMITS = {
   MAX_FILES: 10,
   MAX_FOLDER_DEPTH: 1,
   MAX_COMMITS: 15,
-  MAX_BRANCHES: 5
+  MAX_BRANCHES: 5,
+  MAX_FILE_CHARS: 500
 };
 
-const WHITELIST_PRIMARY = ['git', 'mkdir', 'touch', 'ls', 'clear', 'rm', 'cd'];
+const WHITELIST_PRIMARY = ['git', 'mkdir', 'touch', 'ls', 'clear', 'rm', 'cd', 'cat'];
 
 const WHITELIST_GIT_SUBCOMMANDS = [
   'init',
@@ -142,6 +143,40 @@ function getFolderDepth(pathStr) {
 }
 
 /**
+ * Resolves a target path against the current working directory (cwd).
+ * Returns a normalized path relative to root without leading or trailing slashes.
+ * e.g. cwd='/src/', target='app.js' => 'src/app.js'
+ *      cwd='/', target='app.js' => 'app.js'
+ *      cwd='/src/', target='/app.js' => 'app.js'
+ *
+ * @param {string} cwd
+ * @param {string} targetPath
+ * @returns {string}
+ */
+function resolvePath(cwd, targetPath) {
+  if (!targetPath || typeof targetPath !== 'string') return '';
+  let p = targetPath.replace(/\\/g, '/').trim();
+  let baseParts = [];
+  if (!p.startsWith('/')) {
+    const cleanCwd = (cwd || '/').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
+    if (cleanCwd) {
+      baseParts = cleanCwd.split('/').filter(Boolean);
+    }
+  }
+  const rawParts = p.split('/').filter(part => part !== '' && part !== '.');
+  for (const part of rawParts) {
+    if (part === '..') {
+      if (baseParts.length > 0) {
+        baseParts.pop();
+      }
+    } else {
+      baseParts.push(part);
+    }
+  }
+  return baseParts.join('/');
+}
+
+/**
  * Counts total non-directory files in state.fileSystem.
  *
  * @param {Array<Object>} fileSystem
@@ -168,6 +203,9 @@ function executeCommand(state, commandString) {
   const newState = safeCloneState(state || {});
 
   // Ensure baseline state structure
+  if (!newState.cwd || typeof newState.cwd !== 'string') {
+    newState.cwd = '/';
+  }
   if (!Array.isArray(newState.fileSystem)) {
     newState.fileSystem = [];
   }
@@ -239,6 +277,10 @@ function executeCommand(state, commandString) {
 
     case 'cd':
       result = handleCd(newState, args);
+      break;
+
+    case 'cat':
+      result = handleCat(newState, args);
       break;
 
     case 'clear':
@@ -322,7 +364,8 @@ function checkSandboxLimitsBefore(state, primaryCmd, args) {
   if (primaryCmd === 'mkdir') {
     const targets = args.slice(1).filter(a => !a.startsWith('-'));
     for (const dirName of targets) {
-      if (getFolderDepth(dirName) > SANDBOX_LIMITS.MAX_FOLDER_DEPTH) {
+      const fullPath = resolvePath(state.cwd, dirName);
+      if (getFolderDepth(fullPath) > SANDBOX_LIMITS.MAX_FOLDER_DEPTH) {
         return { message: `Sandbox limit reached: Maximum folder depth is ${SANDBOX_LIMITS.MAX_FOLDER_DEPTH}.` };
       }
     }
@@ -332,7 +375,8 @@ function checkSandboxLimitsBefore(state, primaryCmd, args) {
   if (primaryCmd === 'touch') {
     const targets = args.slice(1).filter(a => !a.startsWith('-'));
     for (const fileName of targets) {
-      const parts = fileName.replace(/\\/g, '/').replace(/^\/+|\/+$/g, '').split('/').filter(Boolean);
+      const fullPath = resolvePath(state.cwd, fileName);
+      const parts = fullPath.split('/').filter(Boolean);
       // Folder depth for a file is parts.length - 1
       if (parts.length - 1 > SANDBOX_LIMITS.MAX_FOLDER_DEPTH) {
         return { message: `Sandbox limit reached: Maximum folder depth is ${SANDBOX_LIMITS.MAX_FOLDER_DEPTH}.` };
@@ -343,9 +387,10 @@ function checkSandboxLimitsBefore(state, primaryCmd, args) {
     let newFilesCount = 0;
     const existingNames = new Set(state.fileSystem.map(f => f.name));
     for (const fileName of targets) {
-      if (!existingNames.has(fileName)) {
+      const fullPath = resolvePath(state.cwd, fileName);
+      if (!existingNames.has(fullPath)) {
         newFilesCount++;
-        existingNames.add(fileName);
+        existingNames.add(fullPath);
       }
     }
     if (currentFileCount + newFilesCount > SANDBOX_LIMITS.MAX_FILES) {
@@ -409,7 +454,8 @@ function handleMkdir(newState, args) {
   }
 
   for (const dirName of targets) {
-    const existing = newState.fileSystem.find(item => item.name === dirName);
+    const fullPath = resolvePath(newState.cwd, dirName);
+    const existing = newState.fileSystem.find(item => item.name === fullPath);
     if (existing) {
       return {
         newState,
@@ -420,8 +466,9 @@ function handleMkdir(newState, args) {
   }
 
   for (const dirName of targets) {
+    const fullPath = resolvePath(newState.cwd, dirName);
     newState.fileSystem.push({
-      name: dirName,
+      name: fullPath,
       type: 'directory'
     });
   }
@@ -452,10 +499,11 @@ function handleTouch(newState, args) {
   }
 
   for (const fileName of targets) {
-    const existing = newState.fileSystem.find(item => item.name === fileName);
+    const fullPath = resolvePath(newState.cwd, fileName);
+    const existing = newState.fileSystem.find(item => item.name === fullPath);
     if (!existing) {
       newState.fileSystem.push({
-        name: fileName,
+        name: fullPath,
         type: 'file',
         status: 'untracked',
         content: ''
@@ -472,17 +520,36 @@ function handleTouch(newState, args) {
 
 /**
  * Handler for 'ls'.
- * Lists items currently in state.fileSystem.
+ * Lists items currently in state.fileSystem that are direct children of cwd.
  *
  * @param {Object} newState
  * @param {Array<string>} args
  * @returns {{ newState: Object, outputMessage: string, success: boolean }}
  */
 function handleLs(newState, args) {
-  const fileNames = newState.fileSystem.map(item => item.name);
+  const cwd = newState.cwd || '/';
+  const cleanCwd = cwd.replace(/^\/+|\/+$/g, '');
+  const prefix = cleanCwd ? cleanCwd + '/' : '';
+
+  const directChildren = newState.fileSystem.filter(item => {
+    if (!item || !item.name) return false;
+    if (prefix) {
+      if (!item.name.startsWith(prefix)) return false;
+      const remainder = item.name.slice(prefix.length);
+      return remainder.length > 0 && !remainder.includes('/');
+    } else {
+      return !item.name.includes('/');
+    }
+  });
+
+  const names = directChildren.map(item => {
+    const parts = item.name.split('/');
+    return parts[parts.length - 1];
+  });
+
   return {
     newState,
-    outputMessage: fileNames.join('  '),
+    outputMessage: names.join('  '),
     success: true
   };
 }
@@ -539,22 +606,50 @@ function handleRm(newState, args) {
  * @returns {{ newState: Object, outputMessage: string, success: boolean }}
  */
 function handleCd(newState, args) {
-  if (args.length < 2 || args[1] === '~' || args[1] === '/' || args[1] === '.') {
+  // If no directory specified, or '~' or '/' -> return to root '/'
+  if (args.length < 2 || args[1] === '~' || args[1] === '/') {
+    newState.cwd = '/';
     return {
       newState,
       outputMessage: '',
       success: true
     };
   }
+
   const target = args[1];
-  if (target === '..') {
+
+  // Current directory '.'
+  if (target === '.') {
+    if (!newState.cwd) {
+      newState.cwd = '/';
+    }
     return {
       newState,
       outputMessage: '',
       success: true
     };
   }
-  const dir = newState.fileSystem.find(item => item.name === target && item.type === 'directory');
+
+  // Parent directory '..'
+  if (target === '..') {
+    const cleanCwd = (newState.cwd || '/').replace(/^\/+|\/+$/g, '');
+    if (!cleanCwd) {
+      newState.cwd = '/';
+    } else {
+      const parts = cleanCwd.split('/').filter(Boolean);
+      parts.pop();
+      newState.cwd = parts.length === 0 ? '/' : '/' + parts.join('/') + '/';
+    }
+    return {
+      newState,
+      outputMessage: '',
+      success: true
+    };
+  }
+
+  // Target directory path relative to cwd or root
+  const resolvedTarget = resolvePath(newState.cwd, target);
+  const dir = newState.fileSystem.find(item => item.name === resolvedTarget && item.type === 'directory');
   if (!dir) {
     return {
       newState,
@@ -562,9 +657,129 @@ function handleCd(newState, args) {
       success: false
     };
   }
+
+  newState.cwd = '/' + resolvedTarget + '/';
   return {
     newState,
     outputMessage: '',
+    success: true
+  };
+}
+
+/**
+ * Handler for 'cat <file>'.
+ * Prints the content of one or more files in state.fileSystem.
+ *
+ * @param {Object} newState
+ * @param {Array<string>} args
+ * @returns {{ newState: Object, outputMessage: string, success: boolean }}
+ */
+function handleCat(newState, args) {
+  const targets = args.slice(1).filter(a => !a.startsWith('-'));
+  if (targets.length === 0) {
+    return {
+      newState,
+      outputMessage: 'cat: missing operand',
+      success: false
+    };
+  }
+
+  const outputParts = [];
+  let allSuccess = true;
+
+  for (const target of targets) {
+    const resolvedPath = resolvePath(newState.cwd, target);
+    const item = newState.fileSystem.find(f => f.name === resolvedPath) ||
+                 newState.fileSystem.find(f => f.name === target);
+
+    if (!item) {
+      outputParts.push(`cat: ${target}: No such file or directory`);
+      allSuccess = false;
+    } else if (item.type === 'directory') {
+      outputParts.push(`cat: ${target}: Is a directory`);
+      allSuccess = false;
+    } else {
+      outputParts.push(item.content !== undefined && item.content !== null ? item.content : '');
+    }
+  }
+
+  return {
+    newState,
+    outputMessage: outputParts.join('\n'),
+    success: allSuccess
+  };
+}
+
+/**
+ * Programmatically edits the content of an existing file in simulatorState.
+ * Enforces a 500-character sandbox limit and updates git tracking status
+ * from 'tracked_unmodified' to 'modified'.
+ *
+ * @param {Object} state - Current simulator state
+ * @param {string} fileName - File path/name to edit
+ * @param {string} newContent - New string content to store in file
+ * @returns {{ newState: Object, success: boolean, outputMessage?: string }}
+ */
+function editFileContent(state, fileName, newContent) {
+  const contentStr = newContent !== undefined && newContent !== null ? String(newContent) : '';
+
+  // Enforce strict sandbox limit: 500 characters
+  if (contentStr.length > SANDBOX_LIMITS.MAX_FILE_CHARS) {
+    return {
+      newState: state,
+      success: false,
+      outputMessage: 'Sandbox limit reached: File content cannot exceed 500 characters.'
+    };
+  }
+
+  // Deep clone to guarantee immutability
+  const newState = safeCloneState(state || {});
+  if (!newState.cwd) {
+    newState.cwd = '/';
+  }
+  if (!Array.isArray(newState.fileSystem)) {
+    newState.fileSystem = [];
+  }
+
+  const resolvedPath = resolvePath(newState.cwd, fileName);
+  let file = newState.fileSystem.find(item => item.name === resolvedPath && item.type !== 'directory');
+  if (!file) {
+    file = newState.fileSystem.find(item => item.name === fileName && item.type !== 'directory');
+  }
+
+  if (!file) {
+    return {
+      newState: state,
+      success: false,
+      outputMessage: `File not found: ${fileName}`
+    };
+  }
+
+  file.content = contentStr;
+
+  // CRITICAL GIT LOGIC: If the file's current status is tracked_unmodified, change its status to modified
+  if (file.status === 'tracked_unmodified') {
+    file.status = 'modified';
+  }
+
+  // Reactivity: dispatch stateChanged on window if in browser environment
+  if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+    try {
+      const event = new CustomEvent('stateChanged', {
+        detail: newState
+      });
+      window.dispatchEvent(event);
+    } catch (e) {
+      if (typeof document !== 'undefined' && typeof document.createEvent === 'function') {
+        const evt = document.createEvent('CustomEvent');
+        evt.initCustomEvent('stateChanged', false, false, newState);
+        window.dispatchEvent(evt);
+      }
+    }
+  }
+
+  return {
+    newState,
     success: true
   };
 }
@@ -1999,6 +2214,51 @@ function runTests() {
     }
   }
 
+  // 20. Directory Traversal & Hierarchical File Operations
+  let dirState = { cwd: '/', fileSystem: [], git: { initialized: true, stagingArea: [], branches: { main: null }, head: 'main', commits: [] } };
+  dirState = executeCommand(dirState, 'mkdir src').newState;
+  assert('mkdir src creates directory', dirState.fileSystem.some(f => f.name === 'src' && f.type === 'directory'));
+  dirState = executeCommand(dirState, 'cd src').newState;
+  assert('cd src updates cwd to /src/', dirState.cwd === '/src/');
+  dirState = executeCommand(dirState, 'touch app.js').newState;
+  assert('touch app.js inside /src/ prefixes path as src/app.js', dirState.fileSystem.some(f => f.name === 'src/app.js'));
+  const rLsSub = executeCommand(dirState, 'ls');
+  assert('ls inside /src/ only lists direct child app.js', rLsSub.outputMessage === 'app.js');
+  dirState = executeCommand(dirState, 'cd ..').newState;
+  assert('cd .. returns to root /', dirState.cwd === '/');
+  const rLsRoot = executeCommand(dirState, 'ls');
+  assert('ls at root only lists direct child src', rLsRoot.outputMessage === 'src');
+
+  // 21. cat Command
+  const rCatSimple = executeCommand(state, 'cat index.html');
+  assert('cat outputs file content', rCatSimple.success);
+
+  state = executeCommand(state, 'touch empty.txt').newState;
+  const rCatEmpty = executeCommand(state, 'cat empty.txt');
+  assert('cat on empty file returns blank string', rCatEmpty.success && rCatEmpty.outputMessage === '');
+
+  const rCatDir = executeCommand(dirState, 'cat src');
+  assert('cat on directory returns Is a directory error', !rCatDir.success && rCatDir.outputMessage === 'cat: src: Is a directory');
+
+  const rCatMissing = executeCommand(state, 'cat nonexistent.txt');
+  assert('cat on missing file returns No such file or directory error', !rCatMissing.success && rCatMissing.outputMessage === 'cat: nonexistent.txt: No such file or directory');
+
+  // 22. editFileContent & Sandbox Limit
+  const originalStateSnap = JSON.stringify(state);
+  const rEditSuccess = editFileContent(state, 'index.html', '<h1>Hello World</h1>');
+  assert('editFileContent succeeds and preserves immutability', rEditSuccess.success && JSON.stringify(state) === originalStateSnap);
+  assert('editFileContent updates file content', rEditSuccess.newState.fileSystem.find(f => f.name === 'index.html').content === '<h1>Hello World</h1>');
+  assert('editFileContent changes tracked_unmodified status to modified', rEditSuccess.newState.fileSystem.find(f => f.name === 'index.html').status === 'modified');
+
+  // Test editing untracked file does not change to modified
+  const rEditUntracked = editFileContent(state, 'empty.txt', 'some content');
+  assert('editFileContent on untracked file keeps status untracked', rEditUntracked.success && rEditUntracked.newState.fileSystem.find(f => f.name === 'empty.txt').status === 'untracked');
+
+  // Test sandbox limit > 500 characters
+  const longContent = 'a'.repeat(501);
+  const rEditOverLimit = editFileContent(state, 'index.html', longContent);
+  assert('editFileContent enforces 500-char sandbox limit', !rEditOverLimit.success && rEditOverLimit.outputMessage === 'Sandbox limit reached: File content cannot exceed 500 characters.' && rEditOverLimit.newState === state);
+
   const passed = tests.filter(t => t.passed).length;
   const failed = tests.filter(t => !t.passed).length;
 
@@ -2018,9 +2278,13 @@ function runTests() {
 if (typeof window !== 'undefined') {
   window.parseCommand = parseCommand;
   window.executeCommand = executeCommand;
+  window.editFileContent = editFileContent;
+  window.handleCat = handleCat;
   window.GitEngine = {
     parseCommand,
     executeCommand,
+    editFileContent,
+    handleCat,
     runTests,
     SANDBOX_LIMITS,
     WHITELIST_PRIMARY,
@@ -2034,6 +2298,8 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     parseCommand,
     executeCommand,
+    editFileContent,
+    handleCat,
     runTests,
     SANDBOX_LIMITS,
     WHITELIST_PRIMARY,
@@ -2042,6 +2308,8 @@ if (typeof module !== 'undefined' && module.exports) {
     GitEngine: {
       parseCommand,
       executeCommand,
+      editFileContent,
+      handleCat,
       runTests,
       SANDBOX_LIMITS,
       WHITELIST_PRIMARY,

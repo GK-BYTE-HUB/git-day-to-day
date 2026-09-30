@@ -6,6 +6,7 @@
  */
 
 const initialSimulatorState = {
+  cwd: '/',
   fileSystem: [],
   git: {
     initialized: false,
@@ -35,11 +36,40 @@ function cloneState(state) {
 }
 
 /**
- * Returns a fresh, pristine deep clone of the canonical initialSimulatorState.
+ * Returns the initial simulator state.
+ * Checks localStorage for persisted 'git_lab_state' first;
+ * if found, safely parses and returns it; otherwise returns fresh initialSimulatorState.
  *
- * @returns {Object} Fresh initial simulator state
+ * @returns {Object} Fresh or persisted simulator state
  */
 function getInitialState() {
+  // If in sandbox mode (?mode=sandbox), bypass localStorage entirely and return sandbox state
+  if (typeof window !== 'undefined' && window.location && window.location.search) {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('mode') === 'sandbox') {
+        return getSandboxInitialState();
+      }
+    } catch (e) {
+      if (window.location.search.indexOf('mode=sandbox') !== -1) {
+        return getSandboxInitialState();
+      }
+    }
+  }
+
+  if (typeof localStorage !== 'undefined' && localStorage) {
+    try {
+      const saved = localStorage.getItem('git_lab_state');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to parse git_lab_state from localStorage:', e);
+    }
+  }
   return cloneState(initialSimulatorState);
 }
 
@@ -51,6 +81,7 @@ function getInitialState() {
  */
 function getSandboxInitialState() {
   return {
+    cwd: '/',
     fileSystem: [
       { name: "index.html", status: "tracked_unmodified", content: "<h1>Welcome to My Website</h1>" },
       { name: "style.css", status: "tracked_unmodified", content: "body { font-family: sans-serif; margin: 0; }" },

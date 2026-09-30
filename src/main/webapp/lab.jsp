@@ -32,11 +32,20 @@
                     Create a new directory called "my-website" for your project.
                 </div>
             </div>
-            <div class="instruction-hint" id="mission-hint">
-                <span>Expected:</span> <strong>mkdir my-website</strong>
+            <div class="instruction-hint" id="mission-hint-container">
+                <button type="button" id="btn-show-hint" class="neo-btn">Show Hint</button>
+                <span id="mission-hint-text" style="display: none;"></span>
             </div>
         </div>
     </section>
+
+    <!-- =========================================================================
+         Persistent Mode Toggle UI (Guided vs Practice Sandbox)
+         ========================================================================= -->
+    <div class="lab-mode-controls" aria-label="Simulator Mode Controls">
+        <button type="button" id="btn-mode-guided" class="neo-btn mode-btn">Guided Missions</button>
+        <button type="button" id="btn-mode-practice" class="neo-btn mode-btn">Practice (Sandbox)</button>
+    </div>
 
     <!-- =========================================================================
          Main 3-Column Grid: Left (30%) | Middle (40%) | Right (30%)
@@ -115,35 +124,65 @@
         </aside>
 
         <!-- ---------------------------------------------------------------------
-             Column 2 (Middle 40%): Commit Graph (Scrollable)
+             Column 2 (Middle 40%): Commit Graph (Top) & Remote Server (Bottom)
              --------------------------------------------------------------------- -->
-        <section class="lab-col-card neo-card" aria-label="Git Commit Graph and History">
-            <div class="lab-col-header">
-                <h2 class="lab-col-title">
-                    <span>&#128392;</span> Commit Graph
-                </h2>
-                <div class="graph-branch-bar">
-                    <span>HEAD &rarr;</span>
-                    <span class="graph-head-badge" id="graph-head-branch">main</span>
-                </div>
-            </div>
-
-            <div class="commit-graph-body" id="commit-graph-scroll-area">
-                <div class="graph-canvas-placeholder" id="graph-empty-placeholder">
-                    <div style="font-size: 2.2rem; margin-bottom: 8px;">&#9741;</div>
-                    <h3 style="font-family: var(--font-heading); font-size: 1.1rem; font-weight: 800; margin-bottom: 6px;">
-                        No Commits Yet
-                    </h3>
-                    <p style="font-family: var(--font-mono); font-size: 0.8rem; color: #64748B; max-width: 320px; margin: 0 auto;">
-                        Initialize Git with <code>git init</code>, stage files with <code>git add</code>, and create snapshots with <code>git commit</code>.
-                    </p>
+        <div class="middle-col-split">
+            <!-- Commit Graph Card -->
+            <section class="lab-col-card neo-card commit-graph-card" aria-label="Git Commit Graph and History">
+                <div class="lab-col-header">
+                    <h2 class="lab-col-title">
+                        <span>&#128392;</span> Commit Graph
+                    </h2>
+                    <div class="graph-branch-bar">
+                        <span>HEAD &rarr;</span>
+                        <span class="graph-head-badge" id="graph-head-branch">main</span>
+                    </div>
                 </div>
 
-                <div class="graph-timeline" id="graph-timeline" style="display: none;">
-                    <!-- Dynamically populated commit nodes -->
+                <div class="commit-graph-body" id="commit-graph-scroll-area">
+                    <div class="graph-canvas-placeholder" id="graph-empty-placeholder">
+                        <div style="font-size: 2.2rem; margin-bottom: 8px;">&#9741;</div>
+                        <h3 style="font-family: var(--font-heading); font-size: 1.1rem; font-weight: 800; margin-bottom: 6px;">
+                            No Commits Yet
+                        </h3>
+                        <p style="font-family: var(--font-mono); font-size: 0.8rem; color: #64748B; max-width: 320px; margin: 0 auto;">
+                            Initialize Git with <code>git init</code>, stage files with <code>git add</code>, and create snapshots with <code>git commit</code>.
+                        </p>
+                    </div>
+
+                    <div class="graph-timeline" id="graph-timeline" style="display: none;">
+                        <!-- Dynamically populated commit nodes -->
+                    </div>
                 </div>
-            </div>
-        </section>
+            </section>
+
+            <!-- Remote Server (GitHub) Panel -->
+            <section class="lab-col-card neo-card remote-server-card" id="remote-server-panel" aria-label="Remote Git Server">
+                <div class="lab-col-header remote-header">
+                    <h2 class="lab-col-title">
+                        <span>&#9729;</span> REMOTE SERVER (GitHub)
+                    </h2>
+                    <span class="remote-status-badge disconnected" id="remote-status-tag">NO REMOTE</span>
+                </div>
+
+                <div class="remote-server-body" id="remote-server-body">
+                    <div class="remote-repo-bar" id="remote-repo-bar" style="display: none;">
+                        <span class="remote-repo-label">Remote:</span>
+                        <code class="remote-repo-url" id="remote-repo-url"></code>
+                    </div>
+
+                    <div class="remote-branches-container">
+                        <div class="remote-empty-placeholder" id="remote-empty-placeholder">
+                            <span class="remote-cloud-icon">&#9729;</span>
+                            <p>No remote repository connected. Use <code>git remote add origin &lt;url&gt;</code></p>
+                        </div>
+                        <ul class="remote-branches-list" id="remote-branches-list" style="display: none;">
+                            <!-- Dynamically populated by lab.js -->
+                        </ul>
+                    </div>
+                </div>
+            </section>
+        </div>
 
         <!-- ---------------------------------------------------------------------
              Column 3 (Right 30%): Terminal (Dark Background & CLI Prompt)
@@ -183,6 +222,35 @@
             </form>
         </section>
 
+    </div>
+</div>
+
+<!-- =========================================================================
+     Notepad Modal for In-Browser File Editing
+     ========================================================================= -->
+<div id="notepad-modal" class="notepad-modal-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="notepad-filename">
+    <div class="notepad-modal-card neo-card">
+        <div class="notepad-modal-header">
+            <div class="notepad-title-group">
+                <span class="notepad-file-icon" aria-hidden="true">&#9998;</span>
+                <span class="notepad-title-prefix">Editing:</span>
+                <h3 id="notepad-filename" class="notepad-filename-title">file.txt</h3>
+            </div>
+            <span id="notepad-char-count" class="notepad-char-count">0 / 500 chars</span>
+        </div>
+        <div class="notepad-modal-body">
+            <textarea
+                id="notepad-textarea"
+                class="notepad-textarea"
+                maxlength="500"
+                placeholder="Type file contents here (max 500 characters)..."
+                spellcheck="false"
+            ></textarea>
+        </div>
+        <div class="notepad-modal-footer">
+            <button type="button" id="btn-notepad-cancel" class="neo-btn notepad-btn-cancel">Cancel</button>
+            <button type="button" id="btn-notepad-save" class="neo-btn notepad-btn-save">Save</button>
+        </div>
     </div>
 </div>
 

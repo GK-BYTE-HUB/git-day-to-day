@@ -127,28 +127,87 @@
   color: #64748B;
 }
 
-.instruction-text {
+.instruction-text,
+#mission-instruction {
   font-family: var(--font-heading);
-  font-size: 1.05rem;
-  font-weight: 700;
+  font-size: 1.25rem;
+  font-weight: 800;
   line-height: 1.4;
   color: var(--text);
+  background-color: #FEF9C3;
+  border-left: 4px solid var(--cta, #FFD700);
+  padding: 10px 14px;
+  border-radius: 2px;
 }
 
 .instruction-hint {
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-  background-color: #FFFFFF;
-  border: 1px solid #000000;
-  padding: 6px 12px;
-  white-space: nowrap;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
-.instruction-hint strong {
-  color: var(--blue);
+#btn-show-hint.neo-btn {
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
+}
+
+#mission-hint-text {
+  display: none;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--blue, #3B82F6);
+  background-color: #FFFFFF;
+  border: 2px solid #000000;
+  padding: 6px 12px;
+  box-shadow: 2px 2px 0px 0px #000;
+  white-space: nowrap;
+}
+
+/* -----------------------------------------------------------------------------
+   Persistent Mode Switching Controls (Guided vs Practice Sandbox)
+   ----------------------------------------------------------------------------- */
+.lab-mode-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lab-mode-controls .mode-btn {
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 8px 18px;
+  background-color: #FFFFFF;
+  color: var(--text, #1C293C);
+  border: 2px solid #000000;
+  box-shadow: 3px 3px 0px 0px #000000;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.1s ease, color 0.1s ease;
+  user-select: none;
+}
+
+.lab-mode-controls .mode-btn:hover {
+  background-color: #F8FAFC;
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0px 0px #000000;
+}
+
+.lab-mode-controls .mode-btn.active {
+  background-color: #000000;
+  color: #FFFFFF;
+  border: 2px solid #000000;
+  box-shadow: 3px 3px 0px 0px var(--cta, #FFD700);
+  font-weight: 800;
+}
+
+.lab-mode-controls .mode-btn.active:hover {
+  transform: none;
+  box-shadow: 3px 3px 0px 0px var(--cta, #FFD700);
 }
 
 /* -----------------------------------------------------------------------------
@@ -315,6 +374,25 @@
   background-color: #E2E8F0;
 }
 
+/* Nested file tree items */
+.file-tree-nested {
+  background-color: #F8FAFF;
+  border-color: #DBEAFE;
+}
+
+.file-tree-connector {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: #94A3B8;
+  flex-shrink: 0;
+  letter-spacing: -1px;
+}
+
+.file-tree-icon {
+  flex-shrink: 0;
+  margin-right: 2px;
+}
+
 /* Bottom Half: Working Directory & Staging Area */
 .working-staging-section {
   flex: 1 1 50%;
@@ -372,17 +450,214 @@
 }
 
 /* -----------------------------------------------------------------------------
-   Middle Column: Commit Graph
+   Middle Column: Split Container (Commit Graph Top + Remote Server Bottom)
+   ----------------------------------------------------------------------------- */
+.middle-col-split {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+  overflow: hidden;
+}
+
+.commit-graph-card {
+  flex: 1 1 56%;
+  min-height: 260px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.remote-server-card {
+  flex: 1 1 44%;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: #FAF5FF;
+}
+
+/* Remote Server Header */
+.remote-header {
+  background-color: #EDE9FE;
+  border-bottom: var(--border-thick, 3px solid #000);
+}
+
+.remote-status-badge {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border: 2px solid #000000;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.remote-status-badge.connected {
+  background-color: var(--success, #00FF00);
+  box-shadow: 2px 2px 0px 0px #000000;
+  color: #000000;
+}
+
+.remote-status-badge.disconnected {
+  background-color: #E2E8F0;
+  color: #64748B;
+  box-shadow: 1px 1px 0px 0px #000000;
+}
+
+/* Remote Server Body */
+.remote-server-body {
+  flex: 1;
+  padding: 12px 14px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background-color: #FAF5FF;
+}
+
+.remote-repo-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #FFFFFF;
+  border: 2px solid #000000;
+  box-shadow: 2px 2px 0px 0px #000000;
+  padding: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  word-break: break-all;
+  flex-shrink: 0;
+}
+
+.remote-repo-label {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  color: #6B21A8;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+}
+
+.remote-repo-url {
+  color: #1E293B;
+  font-weight: 600;
+}
+
+.remote-branches-container {
+  flex: 1;
+}
+
+.remote-branches-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.remote-branch-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background-color: #FFFFFF;
+  border: 2px solid #000000;
+  box-shadow: 2px 2px 0px 0px #000000;
+  padding: 6px 10px;
+  transition: transform 0.1s ease;
+}
+
+.remote-branch-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 3px 3px 0px 0px #000000;
+}
+
+.remote-branch-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.remote-branch-tag {
+  background-color: #DDD6FE;
+  color: #4C1D95;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border: 1px solid #000000;
+}
+
+.remote-branch-pointer {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #64748B;
+}
+
+.remote-commit-badge {
+  background-color: var(--cta, #FFD700);
+  color: #000000;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border: 1px solid #000000;
+}
+
+.remote-commit-msg {
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  color: #334155;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 170px;
+}
+
+.remote-empty-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #64748B;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  padding: 20px 14px;
+  gap: 8px;
+  border: 2px dashed #C4B5FD;
+  background-color: #FFFFFF;
+}
+
+.remote-cloud-icon {
+  font-size: 1.8rem;
+  color: #8B5CF6;
+}
+
+.remote-empty-placeholder code {
+  background-color: #EDE9FE;
+  color: #5B21B6;
+  padding: 2px 6px;
+  border: 1px solid #000000;
+  font-weight: 600;
+}
+
+/* -----------------------------------------------------------------------------
+   Middle Column: Commit Graph — Compact Circular Node Rail
    ----------------------------------------------------------------------------- */
 .commit-graph-body {
   flex: 1;
-  padding: 16px;
+  padding: 16px 12px;
   overflow-y: auto;
-  overflow-x: auto;
+  overflow-x: hidden;
   background-color: #FAF9F6;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 0;
 }
 
 .graph-branch-bar {
@@ -396,6 +671,7 @@
   font-family: var(--font-mono);
   font-size: 0.8rem;
   flex-shrink: 0;
+  margin-bottom: 16px;
 }
 
 .graph-head-badge {
@@ -418,32 +694,83 @@
   background-color: #FFFFFF;
 }
 
+/* Timeline: vertical stack of node wrappers */
 .graph-timeline {
   display: flex;
   flex-direction: column;
-  gap: 16px;
   width: 100%;
   position: relative;
 }
 
+/* Each node wrapper holds the rail line + the horizontal row */
 .graph-node-wrapper {
   position: relative;
   display: flex;
   flex-direction: column;
+  padding-bottom: 0;
 }
 
+/* Vertical connector rail drawn through the center of the circle column */
 .graph-connector-line {
   position: absolute;
-  left: 21px;
-  top: 30px;
-  bottom: -18px;
-  width: 4px;
-  background-color: #000000;
-  z-index: 1;
+  /* Center on the 24px circle: left offset = 8px (row padding) + 12px (circle center) - 2px (half line width) */
+  left: 19px;
+  top: 28px;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, #CBD5E1, #CBD5E1);
+  z-index: 0;
 }
 
 .graph-node-wrapper:last-child .graph-connector-line {
   display: none;
+}
+
+/* Horizontal row: circle on left, meta content on right */
+.graph-node-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 6px 8px 20px 8px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Compact circular commit dot */
+.graph-node-circle {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid #000000;
+  flex-shrink: 0;
+  margin-top: 2px;
+  box-shadow: 1px 1px 0px 0px #000;
+}
+
+.graph-node-circle--head {
+  background-color: var(--cta, #FFD700);
+  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.25), 1px 1px 0px 0px #000;
+}
+
+.graph-node-circle--default {
+  background-color: var(--blue, #3B82F6);
+}
+
+/* Right-side meta column */
+.graph-node-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Top line: id badge + branch tags + timestamp */
+.graph-node-topline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
 }
 
 .graph-branch-tag {
@@ -451,9 +778,11 @@
   color: #FFFFFF;
   border: 1px solid #000000;
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 700;
   padding: 1px 6px;
+  border-radius: 2px;
+  white-space: nowrap;
 }
 
 .graph-branch-tag.head {
@@ -461,65 +790,40 @@
   color: #000000;
 }
 
-.graph-node-card {
-  background-color: #FFFFFF;
-  border: 2px solid #000000;
-  box-shadow: 3px 3px 0px 0px #000;
-  padding: 12px 14px;
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  position: relative;
-}
-
-.graph-node-card.active-head {
-  border-color: #000000;
-  background-color: #FFFBEB;
-}
-
-.graph-node-circle {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background-color: var(--cta);
-  border: 2px solid #000000;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.graph-node-content {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-}
-
-.graph-node-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
 .graph-node-id {
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 700;
   background-color: #000000;
   color: #FFFFFF;
   padding: 1px 6px;
 }
 
+.graph-node-timestamp {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: #94A3B8;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
 .graph-node-msg {
   font-family: var(--font-heading);
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   font-weight: 700;
   color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .graph-node-files {
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: #64748B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* -----------------------------------------------------------------------------
@@ -664,6 +968,20 @@
     min-height: 480px;
     height: 520px;
   }
+
+  .middle-col-split {
+    height: auto;
+  }
+
+  .commit-graph-card {
+    min-height: 380px;
+    height: 420px;
+  }
+
+  .remote-server-card {
+    min-height: 220px;
+    height: auto;
+  }
 }
 
 @media (max-width: 768px) {
@@ -684,3 +1002,185 @@
     border-bottom: 2px solid #000000;
   }
 }
+
+/* =============================================================================
+   Notepad Modal (In-Browser File Editing Dialog)
+   ============================================================================= */
+#notepad-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(2px);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.notepad-modal-card {
+  background-color: #FFFFFF;
+  border: var(--border-thick, 3px solid #000);
+  border-radius: var(--border-radius, 0);
+  box-shadow: var(--shadow-lg, 8px 8px 0px 0px #000);
+  width: 100%;
+  max-width: 680px;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  animation: notepadPopIn 0.15s ease-out;
+}
+
+@keyframes notepadPopIn {
+  from {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.notepad-modal-header {
+  background-color: var(--bg, #F4F4F0);
+  border-bottom: var(--border-thick, 3px solid #000);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.notepad-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notepad-file-icon {
+  font-size: 1.2rem;
+}
+
+.notepad-title-prefix {
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #64748B;
+  letter-spacing: 0.5px;
+}
+
+.notepad-filename-title {
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text, #1C293C);
+  background-color: var(--cta, #FFD700);
+  padding: 2px 8px;
+  border: 2px solid #000000;
+  border-radius: 0;
+  margin: 0;
+}
+
+.notepad-char-count {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #475569;
+  background-color: #E2E8F0;
+  border: 2px solid #000000;
+  box-shadow: 2px 2px 0px 0px #000000;
+  padding: 3px 10px;
+  border-radius: 0;
+}
+
+.notepad-modal-body {
+  padding: 16px 20px;
+  background-color: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+}
+
+.notepad-textarea {
+  width: 100%;
+  min-height: 250px;
+  height: 280px;
+  max-height: 50vh;
+  resize: vertical;
+  background-color: #FAFAFA;
+  border: 2px solid #000000;
+  border-radius: 0;
+  box-shadow: inset 2px 2px 0px 0px rgba(0, 0, 0, 0.08);
+  padding: 14px;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text, #1C293C);
+  outline: none;
+  display: block;
+}
+
+.notepad-textarea:focus {
+  outline: none;
+  border-color: #000000;
+  background-color: #FFFFFF;
+  box-shadow: 3px 3px 0px 0px #000000;
+}
+
+.notepad-modal-footer {
+  background-color: var(--bg, #F4F4F0);
+  border-top: var(--border-thick, 3px solid #000);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.notepad-btn-cancel {
+  background-color: #FFFFFF;
+  color: #000000;
+  border: 2px solid #000000;
+  box-shadow: 2px 2px 0px 0px #000000;
+}
+
+.notepad-btn-cancel:hover {
+  background-color: #E2E8F0;
+  box-shadow: 1px 1px 0px 0px #000000;
+  transform: translate(1px, 1px);
+}
+
+.notepad-btn-save {
+  background-color: var(--success, #00FF00);
+  color: #000000;
+  border: 2px solid #000000;
+  box-shadow: 2px 2px 0px 0px #000000;
+}
+
+.notepad-btn-save:hover {
+  background-color: #22C55E;
+  box-shadow: 1px 1px 0px 0px #000000;
+  transform: translate(1px, 1px);
+}
+
+/* File Tree Item Clickable Highlight for Editing */
+.file-tree-item.file-clickable {
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.file-tree-item.file-clickable:hover {
+  background-color: #FEF08A;
+  border-color: #000000;
+}
+
+.file-tree-item.file-clickable:active {
+  background-color: #FDE047;
+}
+

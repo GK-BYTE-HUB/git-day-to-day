@@ -66,6 +66,7 @@ let currentState = (typeof window !== 'undefined' && typeof window.getInitialSta
   : ((typeof window !== 'undefined' && typeof window.initialSimulatorState === 'object' && window.initialSimulatorState !== null)
       ? JSON.parse(JSON.stringify(window.initialSimulatorState))
       : {
+          cwd: '/',
           fileSystem: [],
           git: {
             initialized: false,
@@ -168,7 +169,7 @@ async function loadMission() {
     if (response.ok) {
       currentMissionSteps = await response.json();
     } else {
-      console.warn(`API returned HTTP ${response.status} for mission ${activeMission}. Attempting fallback contract.`);
+      if (window.DEBUG) { console.warn(`API returned HTTP ${response.status} for mission ${activeMission}. Attempting fallback contract.`); }
       const fallback = await fetch('api-contracts/missions.json');
       if (fallback.ok) {
         const allSteps = await fallback.json();
@@ -178,7 +179,7 @@ async function loadMission() {
       }
     }
   } catch (err) {
-    console.warn(`Network error loading mission ${activeMission}, attempting fallback contract:`, err);
+    if (window.DEBUG) { console.warn(`Network error loading mission ${activeMission}, attempting fallback contract:`, err); }
     try {
       const fallback = await fetch('api-contracts/missions.json');
       if (fallback.ok) {
@@ -262,20 +263,13 @@ function updateMissionBanner() {
       hintTextEl.style.color = 'var(--success, #00FF00)';
     }
 
-    // Next Mission Redirect: Enable #btn-next-step and re-route click to next mission
+    // Next Mission Redirect: Enable #btn-next-step and update button UI
     const btnNext = document.getElementById('btn-next-step');
     if (btnNext) {
-      btnNext.textContent = 'Next Mission \u2192';
+      btnNext.textContent = 'Next Mission →';
       btnNext.disabled = false;
       btnNext.style.opacity = '1';
       btnNext.style.cursor = 'pointer';
-      if (typeof btnNext.removeEventListener === 'function') {
-        btnNext.removeEventListener('click', handleNextStepClick);
-        btnNext.removeEventListener('click', handleNextMissionRedirect);
-      }
-      if (typeof btnNext.addEventListener === 'function') {
-        btnNext.addEventListener('click', handleNextMissionRedirect);
-      }
     }
   } else {
     // Active Step Banner State
@@ -319,17 +313,10 @@ function updateMissionBanner() {
     btnPrev.style.cursor = (currentStepIndex <= 0) ? 'not-allowed' : 'pointer';
   }
   if (btnNext && !isComplete) {
-    btnNext.textContent = 'Next \u2192';
+    btnNext.textContent = 'Next →';
     btnNext.disabled = (currentStepIndex >= totalSteps - 1);
     btnNext.style.opacity = (currentStepIndex >= totalSteps - 1) ? '0.5' : '1';
     btnNext.style.cursor = (currentStepIndex >= totalSteps - 1) ? 'not-allowed' : 'pointer';
-    if (typeof btnNext.removeEventListener === 'function') {
-      btnNext.removeEventListener('click', handleNextMissionRedirect);
-      btnNext.removeEventListener('click', handleNextStepClick);
-    }
-    if (typeof btnNext.addEventListener === 'function') {
-      btnNext.addEventListener('click', handleNextStepClick);
-    }
   }
 }
 
@@ -385,7 +372,24 @@ function handleNextMissionRedirect() {
 }
 
 /**
+ * Unified Next button click handler.
+ * Reads module-level state at call-time: if the mission is complete, redirects
+ * to the next mission; otherwise advances to the next step.
+ * Wired once by setupMissionNavButtons — never swapped.
+ */
+function handleNextClick() {
+  const totalSteps = Array.isArray(currentMissionSteps) ? currentMissionSteps.length : 0;
+  const isComplete = totalSteps > 0 && currentStepIndex >= totalSteps;
+  if (isComplete) {
+    handleNextMissionRedirect();
+  } else {
+    handleNextStepClick();
+  }
+}
+
+/**
  * Wires previous and next step manual navigation buttons in the top banner.
+ * Each button's listener is attached exactly once here.
  */
 function setupMissionNavButtons() {
   const btnPrev = document.getElementById('btn-prev-step');
@@ -402,11 +406,10 @@ function setupMissionNavButtons() {
 
   if (btnNext) {
     if (typeof btnNext.removeEventListener === 'function') {
-      btnNext.removeEventListener('click', handleNextMissionRedirect);
-      btnNext.removeEventListener('click', handleNextStepClick);
+      btnNext.removeEventListener('click', handleNextClick);
     }
     if (typeof btnNext.addEventListener === 'function') {
-      btnNext.addEventListener('click', handleNextStepClick);
+      btnNext.addEventListener('click', handleNextClick);
     }
   }
 }
@@ -433,7 +436,7 @@ function setupModeControls() {
         try {
           localStorage.removeItem('git_lab_state');
         } catch (e) {
-          console.warn('Failed to clear git_lab_state from localStorage:', e);
+          if (window.DEBUG) { console.warn('Failed to clear git_lab_state from localStorage:', e); }
         }
       }
       if (typeof window !== 'undefined' && window.location) {
@@ -455,7 +458,7 @@ function setupModeControls() {
         try {
           localStorage.removeItem('git_lab_state');
         } catch (e) {
-          console.warn('Failed to clear git_lab_state from localStorage:', e);
+          if (window.DEBUG) { console.warn('Failed to clear git_lab_state from localStorage:', e); }
         }
       }
       if (typeof window !== 'undefined' && window.location) {
@@ -639,7 +642,7 @@ function setupNotepadModal() {
         try {
           localStorage.setItem('git_lab_state', JSON.stringify(currentState));
         } catch (storageErr) {
-          console.warn('Failed to save git_lab_state to localStorage:', storageErr);
+          if (window.DEBUG) { console.warn('Failed to save git_lab_state to localStorage:', storageErr); }
         }
       }
 
@@ -747,7 +750,7 @@ function setupTerminalInput() {
         try {
           localStorage.setItem('git_lab_state', JSON.stringify(currentState));
         } catch (storageErr) {
-          console.warn('Failed to save git_lab_state to localStorage:', storageErr);
+          if (window.DEBUG) { console.warn('Failed to save git_lab_state to localStorage:', storageErr); }
         }
       }
 
@@ -985,7 +988,7 @@ function setupResetButton() {
       try {
         localStorage.removeItem('git_lab_state');
       } catch (storageErr) {
-        console.warn('Failed to remove git_lab_state from localStorage:', storageErr);
+        if (window.DEBUG) { console.warn('Failed to remove git_lab_state from localStorage:', storageErr); }
       }
     }
 

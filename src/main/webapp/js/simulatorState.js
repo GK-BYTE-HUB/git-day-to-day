@@ -5,6 +5,12 @@
  * =============================================================================
  */
 
+// Single shared debug flag for all GitD2D scripts (set on window to avoid
+// re-declaration errors across multiple <script> tags on the same page).
+window.DEBUG = false;
+
+const SANDBOX_INITIAL_TIMESTAMP = "2026-01-01T00:00:00.000Z";
+
 const initialSimulatorState = {
   cwd: '/',
   fileSystem: [],
@@ -62,12 +68,21 @@ function getInitialState() {
       const saved = localStorage.getItem('git_lab_state');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed && typeof parsed === 'object') {
+        // Schema validation: discard and purge corrupted state
+        if (
+          parsed &&
+          typeof parsed === 'object' &&
+          Array.isArray(parsed.fileSystem) &&
+          parsed.git !== null &&
+          typeof parsed.git === 'object'
+        ) {
           return parsed;
         }
+        // Invalid schema — remove the corrupted key and fall through to fresh state
+        localStorage.removeItem('git_lab_state');
       }
     } catch (e) {
-      console.warn('Failed to parse git_lab_state from localStorage:', e);
+      if (window.DEBUG) { console.warn('Failed to parse git_lab_state from localStorage:', e); }
     }
   }
   return cloneState(initialSimulatorState);
@@ -98,7 +113,7 @@ function getSandboxInitialState() {
           parent: null,
           message: "Initial commit",
           files: ["index.html", "style.css", "app.js"],
-          timestamp: new Date().toISOString()
+          timestamp: SANDBOX_INITIAL_TIMESTAMP
         }
       ],
       remote: {

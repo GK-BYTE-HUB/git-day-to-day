@@ -1181,8 +1181,8 @@ function handleGitCommit(newState, args) {
   // Clear staging area
   newState.git.stagingArea = [];
 
-  // Update ahead count if remote configured
-  if (newState.git.remote && typeof newState.git.remote === 'object') {
+  // Update ahead count only when a remote URL is actually configured
+  if (newState.git.remote && typeof newState.git.remote === 'object' && newState.git.remote.url) {
     if (!newState.git.remote.aheadBehind) {
       newState.git.remote.aheadBehind = { ahead: 0, behind: 0 };
     }
@@ -1460,6 +1460,29 @@ function handleGitSwitch(newState, args) {
 }
 
 /**
+ * Adds any files listed in a commit's files array that are not yet present
+ * in the working fileSystem. Used by both fast-forward merge and git pull.
+ *
+ * @param {Object} newState  - Mutable cloned state
+ * @param {string} commitId  - ID of the commit whose files should be synced
+ */
+function syncFilesFromCommit(newState, commitId) {
+  const commit = (newState.git.commits || []).find(c => c.id === commitId);
+  if (!commit || !Array.isArray(commit.files)) return;
+  for (const fileName of commit.files) {
+    const existing = newState.fileSystem.find(f => f.name === fileName);
+    if (!existing) {
+      newState.fileSystem.push({
+        name: fileName,
+        type: 'file',
+        status: 'tracked_unmodified',
+        content: ''
+      });
+    }
+  }
+}
+
+/**
  * Handler for 'git merge <branch>'.
  * Simulates a merge (fast-forward or basic merge commit).
  *
@@ -1539,19 +1562,7 @@ function handleGitMerge(newState, args) {
 
   if (isFastForward) {
     newState.git.branches[currentBranch] = targetCommitId;
-    if (targetCommit && Array.isArray(targetCommit.files)) {
-      for (const fileName of targetCommit.files) {
-        const existing = newState.fileSystem.find(f => f.name === fileName);
-        if (!existing) {
-          newState.fileSystem.push({
-            name: fileName,
-            type: 'file',
-            status: 'tracked_unmodified',
-            content: ''
-          });
-        }
-      }
-    }
+    syncFilesFromCommit(newState, targetCommitId);
     return {
       newState,
       outputMessage: `Updating ${currentCommitId || '0000000'}..${targetCommitId}\nFast-forward`,
@@ -1832,6 +1843,9 @@ function handleGitPull(newState, args) {
     newState.git.remote.aheadBehind.ahead = 0;
     newState.git.remote.aheadBehind.behind = 0;
 
+    // Sync fileSystem: add any files from the pulled commit that are missing locally
+    syncFilesFromCommit(newState, remoteCommitId);
+
     return {
       newState,
       outputMessage: `Updating ${localCommitId || '0000000'}..${remoteCommitId}\nFast-forward`,
@@ -1868,6 +1882,7 @@ function handleGitClone(newState, args) {
   const repoName = url.split('/').pop().replace(/\.git$/, '') || 'repo';
 
   const clonedState = {
+    cwd: '/',
     fileSystem: [
       { name: "index.html", type: "file", status: "tracked_unmodified", content: "<h1>Welcome to My Website</h1>" },
       { name: "style.css", type: "file", status: "tracked_unmodified", content: "body { font-family: sans-serif; margin: 0; }" },

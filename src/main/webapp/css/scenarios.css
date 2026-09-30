@@ -263,3 +263,157 @@
   background-color: #FFFFFF;
   color: #000;
 }
+
+/* =============================================================================
+   Phase 5 Polish: Search & Filter Bar & Category Icon Badges
+   ============================================================================= */
+
+/* Search & Filter Container */
+.scenarios-filter-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  margin-bottom: 28px;
+  background-color: #FFFFFF;
+  border: var(--border-thick);
+  box-shadow: var(--shadow-lg);
+}
+
+.scenarios-search-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background-color: var(--color-bg);
+  border: 2px solid #000;
+  box-shadow: 2px 2px 0px 0px #000;
+  padding: 8px 16px;
+}
+
+.scenarios-search-box .search-icon {
+  font-size: 1.2rem;
+  user-select: none;
+}
+
+.scenarios-search-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  outline: none;
+}
+
+.scenarios-search-input::placeholder {
+  color: #666;
+  font-weight: 500;
+}
+
+/* Category Filter Pills */
+.scenarios-category-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.filter-pill {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 800;
+  padding: 6px 14px;
+  background-color: #FFFFFF;
+  color: #000;
+  border: 2px solid #000;
+  box-shadow: 2px 2px 0px 0px #000;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.filter-pill:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px 0px #000;
+  background-color: var(--color-primary);
+}
+
+.filter-pill.active {
+  background-color: #000000;
+  color: #FFFFFF;
+  box-shadow: 2px 2px 0px 0px var(--color-primary);
+}
+
+.filter-pill.active:hover {
+  background-color: #1a1a1a;
+  transform: none;
+}
+
+/* Card Category Badges */
+.scenario-badge-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.scenario-category-badge {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border: 2px solid #000;
+  box-shadow: 2px 2px 0px 0px #000;
+  background-color: var(--color-accent1);
+  color: #000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.scenario-card.bg-accent1 .scenario-category-badge {
+  background-color: #FFFFFF;
+}
+
+.scenario-card.bg-accent2 .scenario-category-badge {
+  background-color: var(--color-primary);
+}
+
+/* Empty Search Results Card */
+.no-scenarios-card {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 48px 24px;
+  background-color: #FFFFFF;
+  border: var(--border-thick);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.no-scenarios-icon {
+  font-size: 3rem;
+}
+
+.no-scenarios-card h3 {
+  font-size: 1.6rem;
+  font-weight: 800;
+}
+
+.no-scenarios-card p {
+  font-size: 1.05rem;
+  max-width: 500px;
+  line-height: 1.5;
+  color: var(--color-text-subtle, #555);
+}
+
+.clear-filters-btn {
+  margin-top: 8px;
+  background-color: var(--color-primary);
+}
+

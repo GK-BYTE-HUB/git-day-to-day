@@ -1,9 +1,24 @@
 /**
  * Git Day-to-Day (GitD2D) - Real-World Scenarios Script
- * Phase 2 & 3: Render cards from mock JSON, accordion toggle, progress tracking & routing
+ * Phase 4 & 5: Backend integration with mock fallback + Category Icon Badges & Real-time Search/Filtering
  */
 
+const API_SCENARIOS_URL = 'api/scenarios';
 const MOCK_SCENARIOS_URL = 'api-contracts/scenarios.json';
+
+// Category metadata mapping for scenarios
+const CATEGORY_MAP = {
+  1: { name: 'Staging', icon: '📦' },
+  2: { name: 'Undo', icon: '↩️' },
+  3: { name: 'Branching', icon: '🌿' },
+  4: { name: 'Conflicts', icon: '⚔️' },
+  5: { name: 'Remote', icon: '🚀' },
+  6: { name: 'Status', icon: '🧭' }
+};
+
+let allScenarios = [];
+let activeCategory = 'all';
+let searchQuery = '';
 
 /**
  * Escapes HTML characters to prevent XSS vulnerabilities
@@ -19,16 +34,33 @@ function escapeHtml(str) {
 }
 
 /**
- * Fetches scenario definitions from mock JSON contract
+ * Determines category object for a given scenario
+ */
+function getScenarioCategory(scenario) {
+  if (scenario.category && scenario.categoryIcon) {
+    return { name: scenario.category, icon: scenario.categoryIcon };
+  }
+  if (CATEGORY_MAP[scenario.id]) {
+    return CATEGORY_MAP[scenario.id];
+  }
+  return { name: 'General', icon: '💡' };
+}
+
+/**
+ * Fetches scenario definitions from real database endpoint, with mock contract fallback
  */
 async function fetchScenarios() {
   try {
-    const response = await fetch(MOCK_SCENARIOS_URL);
+    let response = await fetch(API_SCENARIOS_URL);
     if (!response.ok) {
-      throw new Error(`Failed to load scenarios contract: ${response.status}`);
+      console.warn('[GitD2D] Server endpoint not ready or returned status ' + response.status + ', using mock contract fallback.');
+      response = await fetch(MOCK_SCENARIOS_URL);
     }
-    const scenarios = await response.json();
-    renderScenarios(scenarios);
+    if (!response.ok) {
+      throw new Error(`Failed to load scenarios: ${response.status}`);
+    }
+    allScenarios = await response.json();
+    applyFiltersAndRender();
   } catch (err) {
     console.error('[GitD2D] Error fetching scenarios:', err);
     showErrorState();
@@ -36,7 +68,38 @@ async function fetchScenarios() {
 }
 
 /**
- * Renders the 6 scenario cards into the responsive grid
+ * Filters allScenarios based on activeCategory and searchQuery, then renders
+ */
+function applyFiltersAndRender() {
+  const query = searchQuery.trim().toLowerCase();
+
+  const filtered = allScenarios.filter(scenario => {
+    const cat = getScenarioCategory(scenario);
+
+    // Category Filter
+    const matchesCategory = (activeCategory === 'all') ||
+      (cat.name.toLowerCase() === activeCategory.toLowerCase());
+
+    // Search Query Filter (matches title, theMess, explanation, or fixSteps)
+    let matchesSearch = true;
+    if (query) {
+      const inTitle = (scenario.title || '').toLowerCase().includes(query);
+      const inMess = (scenario.theMess || '').toLowerCase().includes(query);
+      const inExplanation = (scenario.explanation || '').toLowerCase().includes(query);
+      const inSteps = (scenario.fixSteps || []).some(step => step.toLowerCase().includes(query));
+      const inCategory = cat.name.toLowerCase().includes(query);
+
+      matchesSearch = inTitle || inMess || inExplanation || inSteps || inCategory;
+    }
+
+    return matchesCategory && matchesSearch;
+  });
+
+  renderScenarios(filtered);
+}
+
+/**
+ * Renders the scenario cards into the responsive grid
  */
 function renderScenarios(scenarios) {
   const container = document.getElementById('scenarios-grid');
@@ -44,10 +107,28 @@ function renderScenarios(scenarios) {
 
   container.innerHTML = '';
 
+  if (scenarios.length === 0) {
+    container.innerHTML = `
+      <div class="neo-card no-scenarios-card">
+        <div class="no-scenarios-icon">🔍</div>
+        <h3>No Scenarios Found</h3>
+        <p>No troubleshooting scenarios match your search query "${escapeHtml(searchQuery)}". Try clearing filters or using different keywords.</p>
+        <button class="neo-btn clear-filters-btn" id="clear-filters-btn">CLEAR FILTERS</button>
+      </div>
+    `;
+    const clearBtn = document.getElementById('clear-filters-btn');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', resetFilters);
+    }
+    return;
+  }
+
   const colorClasses = ['bg-primary', 'bg-accent1', 'bg-accent2'];
 
   scenarios.forEach((scenario, index) => {
     const colorClass = colorClasses[index % colorClasses.length];
+    const category = getScenarioCategory(scenario);
+
     const card = document.createElement('div');
     card.className = `neo-card scenario-card ${colorClass}`;
     card.setAttribute('data-id', scenario.id);
@@ -60,11 +141,13 @@ function renderScenarios(scenarios) {
       </div>
     `).join('');
 
-    // Order: Panic Statement (theMess) -> Explanation -> Step-by-Step Fix -> Fix In Lab Button
     card.innerHTML = `
       <div class="scenario-card-header">
         <div>
-          <span class="scenario-card-number">Scenario 0${scenario.id}</span>
+          <div class="scenario-badge-group">
+            <span class="scenario-card-number">Scenario 0${scenario.id}</span>
+            <span class="scenario-category-badge">${category.icon} ${escapeHtml(category.name)}</span>
+          </div>
           <h2 class="scenario-card-title">${escapeHtml(scenario.title)}</h2>
         </div>
         <div class="scenario-expand-icon">▼</div>
@@ -148,6 +231,54 @@ function handleCardClick(scenarioId, card) {
 }
 
 /**
+ * Resets search input and category filter buttons to default 'all'
+ */
+function resetFilters() {
+  searchQuery = '';
+  activeCategory = 'all';
+
+  const searchInput = document.getElementById('scenario-search');
+  if (searchInput) searchInput.value = '';
+
+  document.querySelectorAll('.filter-pill').forEach(pill => {
+    pill.classList.toggle('active', pill.getAttribute('data-category') === 'all');
+  });
+
+  applyFiltersAndRender();
+}
+
+/**
+ * Sets up event listeners for the search input and category pills
+ */
+function setupFilterListeners() {
+  const searchInput = document.getElementById('scenario-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value;
+      applyFiltersAndRender();
+    });
+  }
+
+  const categoryPillsContainer = document.getElementById('category-pills');
+  if (categoryPillsContainer) {
+    categoryPillsContainer.addEventListener('click', (e) => {
+      const pill = e.target.closest('.filter-pill');
+      if (!pill) return;
+
+      const category = pill.getAttribute('data-category');
+      if (!category) return;
+
+      activeCategory = category;
+
+      document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+
+      applyFiltersAndRender();
+    });
+  }
+}
+
+/**
  * Renders a fallback error card if fetching fails
  */
 function showErrorState() {
@@ -162,5 +293,6 @@ function showErrorState() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  setupFilterListeners();
   fetchScenarios();
 });

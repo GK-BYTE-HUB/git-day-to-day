@@ -43,6 +43,20 @@ function cloneState(state) {
  * @returns {Object} Fresh or persisted simulator state
  */
 function getInitialState() {
+  // If in sandbox mode (?mode=sandbox), bypass localStorage entirely and return sandbox state
+  if (typeof window !== 'undefined' && window.location && window.location.search) {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('mode') === 'sandbox') {
+        return getSandboxInitialState();
+      }
+    } catch (e) {
+      if (window.location.search.indexOf('mode=sandbox') !== -1) {
+        return getSandboxInitialState();
+      }
+    }
+  }
+
   if (typeof localStorage !== 'undefined' && localStorage) {
     try {
       const saved = localStorage.getItem('git_lab_state');

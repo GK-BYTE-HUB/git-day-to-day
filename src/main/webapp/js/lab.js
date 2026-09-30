@@ -426,7 +426,16 @@ function setupModeControls() {
       btnGuided.setAttribute('aria-pressed', 'false');
     }
     btnGuided.addEventListener('click', () => {
-      window.location.href = '?mode=guided&mission=1';
+      if (typeof localStorage !== 'undefined' && localStorage) {
+        try {
+          localStorage.removeItem('git_lab_state');
+        } catch (e) {
+          console.warn('Failed to clear git_lab_state from localStorage:', e);
+        }
+      }
+      if (typeof window !== 'undefined' && window.location) {
+        window.location.href = '?mode=guided&mission=1';
+      }
     });
   }
 
@@ -439,7 +448,16 @@ function setupModeControls() {
       btnPractice.setAttribute('aria-pressed', 'false');
     }
     btnPractice.addEventListener('click', () => {
-      window.location.href = '?mode=sandbox';
+      if (typeof localStorage !== 'undefined' && localStorage) {
+        try {
+          localStorage.removeItem('git_lab_state');
+        } catch (e) {
+          console.warn('Failed to clear git_lab_state from localStorage:', e);
+        }
+      }
+      if (typeof window !== 'undefined' && window.location) {
+        window.location.href = '?mode=sandbox';
+      }
     });
   }
 }
@@ -557,8 +575,8 @@ function setupTerminalInput() {
       // Update local state copy
       currentState = result.newState;
 
-      // Persist simulator state to localStorage after every command
-      if (typeof localStorage !== 'undefined' && localStorage) {
+      // Persist simulator state to localStorage after every command (guided mode only, sandbox is ephemeral)
+      if (!isSandboxMode() && typeof localStorage !== 'undefined' && localStorage) {
         try {
           localStorage.setItem('git_lab_state', JSON.stringify(currentState));
         } catch (storageErr) {

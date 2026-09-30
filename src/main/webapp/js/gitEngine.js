@@ -16,10 +16,11 @@ const SANDBOX_LIMITS = {
   MAX_FILES: 10,
   MAX_FOLDER_DEPTH: 1,
   MAX_COMMITS: 15,
-  MAX_BRANCHES: 5
+  MAX_BRANCHES: 5,
+  MAX_FILE_CHARS: 500
 };
 
-const WHITELIST_PRIMARY = ['git', 'mkdir', 'touch', 'ls', 'clear', 'rm', 'cd'];
+const WHITELIST_PRIMARY = ['git', 'mkdir', 'touch', 'ls', 'clear', 'rm', 'cd', 'cat'];
 
 const WHITELIST_GIT_SUBCOMMANDS = [
   'init',
@@ -276,6 +277,10 @@ function executeCommand(state, commandString) {
 
     case 'cd':
       result = handleCd(newState, args);
+      break;
+
+    case 'cat':
+      result = handleCat(newState, args);
       break;
 
     case 'clear':
@@ -657,6 +662,124 @@ function handleCd(newState, args) {
   return {
     newState,
     outputMessage: '',
+    success: true
+  };
+}
+
+/**
+ * Handler for 'cat <file>'.
+ * Prints the content of one or more files in state.fileSystem.
+ *
+ * @param {Object} newState
+ * @param {Array<string>} args
+ * @returns {{ newState: Object, outputMessage: string, success: boolean }}
+ */
+function handleCat(newState, args) {
+  const targets = args.slice(1).filter(a => !a.startsWith('-'));
+  if (targets.length === 0) {
+    return {
+      newState,
+      outputMessage: 'cat: missing operand',
+      success: false
+    };
+  }
+
+  const outputParts = [];
+  let allSuccess = true;
+
+  for (const target of targets) {
+    const resolvedPath = resolvePath(newState.cwd, target);
+    const item = newState.fileSystem.find(f => f.name === resolvedPath) ||
+                 newState.fileSystem.find(f => f.name === target);
+
+    if (!item) {
+      outputParts.push(`cat: ${target}: No such file or directory`);
+      allSuccess = false;
+    } else if (item.type === 'directory') {
+      outputParts.push(`cat: ${target}: Is a directory`);
+      allSuccess = false;
+    } else {
+      outputParts.push(item.content !== undefined && item.content !== null ? item.content : '');
+    }
+  }
+
+  return {
+    newState,
+    outputMessage: outputParts.join('\n'),
+    success: allSuccess
+  };
+}
+
+/**
+ * Programmatically edits the content of an existing file in simulatorState.
+ * Enforces a 500-character sandbox limit and updates git tracking status
+ * from 'tracked_unmodified' to 'modified'.
+ *
+ * @param {Object} state - Current simulator state
+ * @param {string} fileName - File path/name to edit
+ * @param {string} newContent - New string content to store in file
+ * @returns {{ newState: Object, success: boolean, outputMessage?: string }}
+ */
+function editFileContent(state, fileName, newContent) {
+  const contentStr = newContent !== undefined && newContent !== null ? String(newContent) : '';
+
+  // Enforce strict sandbox limit: 500 characters
+  if (contentStr.length > SANDBOX_LIMITS.MAX_FILE_CHARS) {
+    return {
+      newState: state,
+      success: false,
+      outputMessage: 'Sandbox limit reached: File content cannot exceed 500 characters.'
+    };
+  }
+
+  // Deep clone to guarantee immutability
+  const newState = safeCloneState(state || {});
+  if (!newState.cwd) {
+    newState.cwd = '/';
+  }
+  if (!Array.isArray(newState.fileSystem)) {
+    newState.fileSystem = [];
+  }
+
+  const resolvedPath = resolvePath(newState.cwd, fileName);
+  let file = newState.fileSystem.find(item => item.name === resolvedPath && item.type !== 'directory');
+  if (!file) {
+    file = newState.fileSystem.find(item => item.name === fileName && item.type !== 'directory');
+  }
+
+  if (!file) {
+    return {
+      newState: state,
+      success: false,
+      outputMessage: `File not found: ${fileName}`
+    };
+  }
+
+  file.content = contentStr;
+
+  // CRITICAL GIT LOGIC: If the file's current status is tracked_unmodified, change its status to modified
+  if (file.status === 'tracked_unmodified') {
+    file.status = 'modified';
+  }
+
+  // Reactivity: dispatch stateChanged on window if in browser environment
+  if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+    try {
+      const event = new CustomEvent('stateChanged', {
+        detail: newState
+      });
+      window.dispatchEvent(event);
+    } catch (e) {
+      if (typeof document !== 'undefined' && typeof document.createEvent === 'function') {
+        const evt = document.createEvent('CustomEvent');
+        evt.initCustomEvent('stateChanged', false, false, newState);
+        window.dispatchEvent(evt);
+      }
+    }
+  }
+
+  return {
+    newState,
     success: true
   };
 }
@@ -2106,6 +2229,36 @@ function runTests() {
   const rLsRoot = executeCommand(dirState, 'ls');
   assert('ls at root only lists direct child src', rLsRoot.outputMessage === 'src');
 
+  // 21. cat Command
+  const rCatSimple = executeCommand(state, 'cat index.html');
+  assert('cat outputs file content', rCatSimple.success);
+
+  state = executeCommand(state, 'touch empty.txt').newState;
+  const rCatEmpty = executeCommand(state, 'cat empty.txt');
+  assert('cat on empty file returns blank string', rCatEmpty.success && rCatEmpty.outputMessage === '');
+
+  const rCatDir = executeCommand(dirState, 'cat src');
+  assert('cat on directory returns Is a directory error', !rCatDir.success && rCatDir.outputMessage === 'cat: src: Is a directory');
+
+  const rCatMissing = executeCommand(state, 'cat nonexistent.txt');
+  assert('cat on missing file returns No such file or directory error', !rCatMissing.success && rCatMissing.outputMessage === 'cat: nonexistent.txt: No such file or directory');
+
+  // 22. editFileContent & Sandbox Limit
+  const originalStateSnap = JSON.stringify(state);
+  const rEditSuccess = editFileContent(state, 'index.html', '<h1>Hello World</h1>');
+  assert('editFileContent succeeds and preserves immutability', rEditSuccess.success && JSON.stringify(state) === originalStateSnap);
+  assert('editFileContent updates file content', rEditSuccess.newState.fileSystem.find(f => f.name === 'index.html').content === '<h1>Hello World</h1>');
+  assert('editFileContent changes tracked_unmodified status to modified', rEditSuccess.newState.fileSystem.find(f => f.name === 'index.html').status === 'modified');
+
+  // Test editing untracked file does not change to modified
+  const rEditUntracked = editFileContent(state, 'empty.txt', 'some content');
+  assert('editFileContent on untracked file keeps status untracked', rEditUntracked.success && rEditUntracked.newState.fileSystem.find(f => f.name === 'empty.txt').status === 'untracked');
+
+  // Test sandbox limit > 500 characters
+  const longContent = 'a'.repeat(501);
+  const rEditOverLimit = editFileContent(state, 'index.html', longContent);
+  assert('editFileContent enforces 500-char sandbox limit', !rEditOverLimit.success && rEditOverLimit.outputMessage === 'Sandbox limit reached: File content cannot exceed 500 characters.' && rEditOverLimit.newState === state);
+
   const passed = tests.filter(t => t.passed).length;
   const failed = tests.filter(t => !t.passed).length;
 
@@ -2125,9 +2278,13 @@ function runTests() {
 if (typeof window !== 'undefined') {
   window.parseCommand = parseCommand;
   window.executeCommand = executeCommand;
+  window.editFileContent = editFileContent;
+  window.handleCat = handleCat;
   window.GitEngine = {
     parseCommand,
     executeCommand,
+    editFileContent,
+    handleCat,
     runTests,
     SANDBOX_LIMITS,
     WHITELIST_PRIMARY,
@@ -2141,6 +2298,8 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     parseCommand,
     executeCommand,
+    editFileContent,
+    handleCat,
     runTests,
     SANDBOX_LIMITS,
     WHITELIST_PRIMARY,
@@ -2149,6 +2308,8 @@ if (typeof module !== 'undefined' && module.exports) {
     GitEngine: {
       parseCommand,
       executeCommand,
+      editFileContent,
+      handleCat,
       runTests,
       SANDBOX_LIMITS,
       WHITELIST_PRIMARY,

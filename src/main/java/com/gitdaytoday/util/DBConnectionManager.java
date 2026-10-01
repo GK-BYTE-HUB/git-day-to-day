@@ -57,19 +57,33 @@ public class DBConnectionManager {
     }
 
     /**
-     * Obtains a new database connection using credentials from db.properties.
+     * Obtains a new database connection using credentials from environment variables or db.properties.
      *
      * @return a valid java.sql.Connection
      * @throws SQLException if a database access error occurs
      */
     public static Connection getConnection() throws SQLException {
-        if (properties.isEmpty()) {
-            loadProperties();
-        }
-        String url = properties.getProperty("db.url");
-        String user = properties.getProperty("db.user");
-        String password = properties.getProperty("db.password");
+        String mysqlHost = System.getenv("MYSQLHOST");
+        
+        if (mysqlHost != null && !mysqlHost.trim().isEmpty()) {
+            System.out.println("Using environment-variable DB config");
+            String mysqlPort = System.getenv("MYSQLPORT");
+            String mysqlDb = System.getenv("MYSQLDATABASE");
+            String user = System.getenv("MYSQLUSER");
+            String password = System.getenv("MYSQLPASSWORD");
+            
+            String url = "jdbc:mysql://" + mysqlHost + ":" + mysqlPort + "/" + mysqlDb + "?useSSL=true&serverTimezone=UTC";
+            return DriverManager.getConnection(url, user, password);
+        } else {
+            System.out.println("Using local db.properties");
+            if (properties.isEmpty()) {
+                loadProperties();
+            }
+            String url = properties.getProperty("db.url");
+            String user = properties.getProperty("db.user");
+            String password = properties.getProperty("db.password");
 
-        return DriverManager.getConnection(url, user, password);
+            return DriverManager.getConnection(url, user, password);
+        }
     }
 }

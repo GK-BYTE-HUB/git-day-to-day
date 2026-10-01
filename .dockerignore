@@ -1,0 +1,8 @@
+target/
+.git/
+.tools/
+run_server.sh
+setup_env.sh
+src/main/resources/db.properties
+.idea/
+.vscode/

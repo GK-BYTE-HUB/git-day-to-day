@@ -3,6 +3,7 @@ package com.gitdaytoday.servlet;
 import com.gitdaytoday.dao.MissionStepDao;
 import com.gitdaytoday.exception.DataAccessException;
 import com.gitdaytoday.model.MissionStep;
+import com.gitdaytoday.util.JsonUtil;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -62,7 +63,7 @@ public class MissionServlet extends HttpServlet {
         } catch (DataAccessException e) {
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             PrintWriter out = response.getWriter();
-            out.write("{\"error\": \"Database access error: " + escapeJson(e.getMessage()) + "\"}");
+            out.write("{\"error\": \"Database access error: " + JsonUtil.escapeJson(e.getMessage()) + "\"}");
             out.flush();
             return;
         }
@@ -80,20 +81,17 @@ public class MissionServlet extends HttpServlet {
      * @return Formatted JSON array string
      */
     private String buildJsonArray(List<MissionStep> steps) {
-        StringBuilder json = new StringBuilder();
-        json.append("[\n");
-
-        for (int i = 0; i < steps.size(); i++) {
-            MissionStep step = steps.get(i);
+        return JsonUtil.buildJsonArray(steps, step -> {
+            StringBuilder json = new StringBuilder();
             json.append("  {\n");
             json.append("    \"missionNo\": ").append(step.getMissionNo()).append(",\n");
             json.append("    \"stepNo\": ").append(step.getStepNo()).append(",\n");
-            json.append("    \"instruction\": \"").append(escapeJson(step.getInstruction())).append("\",\n");
+            json.append("    \"instruction\": \"").append(JsonUtil.escapeJson(step.getInstruction())).append("\",\n");
             json.append("    \"expectedCommands\": [\n");
 
             List<String> cmds = parseExpectedCommands(step.getExpectedCommands());
             for (int j = 0; j < cmds.size(); j++) {
-                json.append("      \"").append(escapeJson(cmds.get(j))).append("\"");
+                json.append("      \"").append(JsonUtil.escapeJson(cmds.get(j))).append("\"");
                 if (j < cmds.size() - 1) {
                     json.append(",");
                 }
@@ -102,14 +100,8 @@ public class MissionServlet extends HttpServlet {
 
             json.append("    ]\n");
             json.append("  }");
-            if (i < steps.size() - 1) {
-                json.append(",");
-            }
-            json.append("\n");
-        }
-
-        json.append("]");
-        return json.toString();
+            return json.toString();
+        });
     }
 
     /**
@@ -166,53 +158,5 @@ public class MissionServlet extends HttpServlet {
         }
 
         return commands;
-    }
-
-    /**
-     * Escapes characters in a string for safe inclusion in JSON values.
-     *
-     * @param s Input string
-     * @return Escaped string
-     */
-    private String escapeJson(String s) {
-        if (s == null) {
-            return "";
-        }
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < s.length(); i++) {
-            char c = s.charAt(i);
-            switch (c) {
-                case '"':
-                    sb.append("\\\"");
-                    break;
-                case '\\':
-                    sb.append("\\\\");
-                    break;
-                case '\b':
-                    sb.append("\\b");
-                    break;
-                case '\f':
-                    sb.append("\\f");
-                    break;
-                case '\n':
-                    sb.append("\\n");
-                    break;
-                case '\r':
-                    sb.append("\\r");
-                    break;
-                case '\t':
-                    sb.append("\\t");
-                    break;
-                default:
-                    if (c < ' ') {
-                        String hex = "000" + Integer.toHexString(c);
-                        sb.append("\\u").append(hex.substring(hex.length() - 4));
-                    } else {
-                        sb.append(c);
-                    }
-                    break;
-            }
-        }
-        return sb.toString();
     }
 }

@@ -1117,6 +1117,27 @@ function handleGitCommit(newState, args) {
     };
   }
 
+  // Handle -a / -am flag: auto-stage all tracked, modified files
+  const isAutoStage = args.includes('-a') || args.includes('-am') || args.includes('-ma');
+  if (isAutoStage) {
+    if (!Array.isArray(newState.git.stagingArea)) {
+      newState.git.stagingArea = [];
+    }
+    const branch = newState.git.head || 'main';
+    const headCommitId = newState.git.branches ? newState.git.branches[branch] : null;
+    const headCommit = (newState.git.commits || []).find(c => c.id === headCommitId);
+    const committedFiles = headCommit && Array.isArray(headCommit.files) ? headCommit.files : [];
+
+    for (const file of (newState.fileSystem || [])) {
+      if (file.type !== 'directory' && committedFiles.includes(file.name) && file.status === 'modified') {
+        if (!newState.git.stagingArea.includes(file.name)) {
+          newState.git.stagingArea.push(file.name);
+        }
+        file.status = 'staged';
+      }
+    }
+  }
+
   if (!Array.isArray(newState.git.stagingArea) || newState.git.stagingArea.length === 0) {
     const branch = newState.git.head || 'main';
     return {
@@ -1214,7 +1235,7 @@ function handleGitLog(newState, args) {
   }
 
   const commitMap = new Map(newState.git.commits.map(c => [c.id, c]));
-  const history = [];
+  let history = [];
   let curr = commitMap.get(headCommitId);
   const visited = new Set();
 
@@ -1230,6 +1251,28 @@ function handleGitLog(newState, args) {
       outputMessage: `fatal: your current branch '${branch}' does not have any commits yet`,
       success: false
     };
+  }
+
+  // Support -n <number> or -n<number> flag to limit output to most recent N commits
+  let limit = null;
+  for (let i = 2; i < args.length; i++) {
+    if (args[i] === '-n') {
+      if (i + 1 < args.length) {
+        const val = parseInt(args[i + 1], 10);
+        if (!isNaN(val) && val >= 0) {
+          limit = val;
+        }
+      }
+    } else if (args[i].startsWith('-n') && args[i].length > 2) {
+      const val = parseInt(args[i].slice(2), 10);
+      if (!isNaN(val) && val >= 0) {
+        limit = val;
+      }
+    }
+  }
+
+  if (limit !== null) {
+    history = history.slice(0, limit);
   }
 
   const isOneLine = args.includes('--oneline');

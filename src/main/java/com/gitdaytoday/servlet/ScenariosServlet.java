@@ -3,6 +3,7 @@ package com.gitdaytoday.servlet;
 import com.gitdaytoday.dao.ScenarioDao;
 import com.gitdaytoday.exception.DataAccessException;
 import com.gitdaytoday.model.Scenario;
+import com.gitdaytoday.util.JsonUtil;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -66,7 +67,7 @@ public class ScenariosServlet extends HttpServlet {
             e.printStackTrace();
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             PrintWriter out = response.getWriter();
-            out.write("{\"error\": \"Database access error: " + escapeJson(e.getMessage()) + "\"}");
+            out.write("{\"error\": \"Database access error: " + JsonUtil.escapeJson(e.getMessage()) + "\"}");
             out.flush();
             return;
         }
@@ -84,17 +85,14 @@ public class ScenariosServlet extends HttpServlet {
      * @return Formatted JSON array string
      */
     private String buildJsonArray(List<Scenario> scenarios) {
-        StringBuilder json = new StringBuilder();
-        json.append("[\n");
-
-        for (int i = 0; i < scenarios.size(); i++) {
-            Scenario s = scenarios.get(i);
+        return JsonUtil.buildJsonArray(scenarios, s -> {
+            StringBuilder json = new StringBuilder();
             json.append("  {\n");
             json.append("    \"id\": ").append(s.getId()).append(",\n");
-            json.append("    \"title\": \"").append(escapeJson(s.getTitle())).append("\",\n");
-            json.append("    \"theMess\": \"").append(escapeJson(s.getTheMess())).append("\",\n");
-            json.append("    \"explanation\": \"").append(escapeJson(s.getExplanation())).append("\",\n");
-            
+            json.append("    \"title\": \"").append(JsonUtil.escapeJson(s.getTitle())).append("\",\n");
+            json.append("    \"theMess\": \"").append(JsonUtil.escapeJson(s.getTheMess())).append("\",\n");
+            json.append("    \"explanation\": \"").append(JsonUtil.escapeJson(s.getExplanation())).append("\",\n");
+
             String fixStepsJson = (s.getFixSteps() != null && !s.getFixSteps().trim().isEmpty()) ? s.getFixSteps().trim() : "[]";
             json.append("    \"fixSteps\": ").append(fixStepsJson).append(",\n");
 
@@ -102,61 +100,7 @@ public class ScenariosServlet extends HttpServlet {
             json.append("    \"labPrefillState\": ").append(labPrefillJson).append("\n");
 
             json.append("  }");
-            if (i < scenarios.size() - 1) {
-                json.append(",");
-            }
-            json.append("\n");
-        }
-
-        json.append("]");
-        return json.toString();
-    }
-
-    /**
-     * Escapes characters in a string for safe inclusion in JSON values.
-     *
-     * @param s Input string
-     * @return Escaped string
-     */
-    private String escapeJson(String s) {
-        if (s == null) {
-            return "";
-        }
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < s.length(); i++) {
-            char c = s.charAt(i);
-            switch (c) {
-                case '"':
-                    sb.append("\\\"");
-                    break;
-                case '\\':
-                    sb.append("\\\\");
-                    break;
-                case '\b':
-                    sb.append("\\b");
-                    break;
-                case '\f':
-                    sb.append("\\f");
-                    break;
-                case '\n':
-                    sb.append("\\n");
-                    break;
-                case '\r':
-                    sb.append("\\r");
-                    break;
-                case '\t':
-                    sb.append("\\t");
-                    break;
-                default:
-                    if (c < ' ') {
-                        String hex = "000" + Integer.toHexString(c);
-                        sb.append("\\u").append(hex.substring(hex.length() - 4));
-                    } else {
-                        sb.append(c);
-                    }
-                    break;
-            }
-        }
-        return sb.toString();
+            return json.toString();
+        });
     }
 }

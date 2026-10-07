@@ -72,10 +72,20 @@ function applyUserProgressState() {
       progressHub.style.display = 'flex';
     }
 
-    // Calculate Stats
-    const cmdCount = Math.min(TOTAL_COMMANDS, progress.commandsPracticed.length);
-    const missionCount = Math.min(TOTAL_MISSIONS, progress.missionsCompleted.length);
-    const overallPct = Math.min(100, Math.round((cmdCount / TOTAL_COMMANDS) * 100));
+    // Calculate Stats across both commands and missions
+    const stats = (typeof window.calculateProgress === 'function')
+      ? window.calculateProgress(progress)
+      : {
+          completedCommands: Math.min(TOTAL_COMMANDS, (progress.commandsPracticed || []).length),
+          totalCommands: TOTAL_COMMANDS,
+          completedMissions: Math.min(TOTAL_MISSIONS, (progress.missionsCompleted || []).length),
+          totalMissions: TOTAL_MISSIONS,
+          percentage: Math.min(100, Math.round((((progress.commandsPracticed || []).length + (progress.missionsCompleted || []).length) / (TOTAL_COMMANDS + TOTAL_MISSIONS)) * 100))
+        };
+
+    const cmdCount = stats.completedCommands;
+    const missionCount = stats.completedMissions;
+    const overallPct = stats.percentage;
 
     // Update Stats Display
     const statCommands = document.getElementById('stat-commands');
@@ -141,3 +151,10 @@ function applyUserProgressState() {
 document.addEventListener('DOMContentLoaded', () => {
   applyUserProgressState();
 });
+
+// Re-evaluate on progress updates
+if (typeof window !== 'undefined') {
+  window.addEventListener('progressChanged', () => {
+    applyUserProgressState();
+  });
+}

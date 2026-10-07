@@ -115,6 +115,9 @@
     cursor: pointer;
 
     transition: background 0.1s ease;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
 .command-item:last-child {
@@ -127,6 +130,20 @@
 
 .command-item.active {
     background: var(--blue);
+    color: #FFFFFF;
+}
+
+.command-item.completed {
+    border-left: 5px solid var(--success, #00FF00);
+}
+
+.command-item .command-check {
+    color: var(--success, #00FF00);
+    font-weight: 800;
+    margin-left: 8px;
+}
+
+.command-item.active .command-check {
     color: #FFFFFF;
 }
 
@@ -290,16 +307,40 @@
 }
 
 /* ============================================================
-   TRY IT
+   TRY IT & ACTION BUTTONS
    ============================================================ */
 
 .try-lab {
-    margin-top: 20px;
+    margin-top: 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
 }
 
 .try-lab .neo-btn {
+    margin: 0;
+}
+
+.try-lab .btn-try-lab {
     background: var(--blue);
     color: #FFFFFF;
+}
+
+.try-lab .btn-mark-complete {
+    background: #FFFFFF;
+    color: #000000;
+    border: var(--border-thick);
+    transition: background 0.2s ease, transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.try-lab .btn-mark-complete:hover {
+    background: var(--cta);
+}
+
+.try-lab .btn-mark-complete.completed {
+    background: var(--success);
+    color: #000000;
 }
 
 /* ============================================================

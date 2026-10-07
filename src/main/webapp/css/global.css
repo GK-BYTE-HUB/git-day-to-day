@@ -189,3 +189,55 @@ a {
   color: var(--text);
   margin-top: 40px;
 }
+
+/* 8. Global Learning Journey Progress Bar Styles */
+.global-progress-bar-container {
+  background-color: #FFFFFF;
+  border-bottom: var(--border-thick);
+  padding: 8px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 2px 0 0 rgba(0, 0, 0, 0.05);
+}
+
+.global-progress-bar-label {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #000000;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.global-progress-bar-track {
+  flex: 1;
+  height: 14px;
+  background-color: #FFFFFF;
+  border: 2px solid #000000;
+  box-shadow: 2px 2px 0px 0px #000;
+  position: relative;
+  overflow: hidden;
+}
+
+.global-progress-bar-fill {
+  height: 100%;
+  background-color: var(--cta);
+  width: 0%;
+  transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.3s ease;
+}
+
+.global-progress-bar-fill.all-complete {
+  background-color: var(--success);
+}
+
+.global-progress-bar-text {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #000000;
+  white-space: nowrap;
+  min-width: 60px;
+  text-align: right;
+}

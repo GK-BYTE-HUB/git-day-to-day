@@ -830,10 +830,16 @@ function validateMissionStep(trimmedInput, rawInput, result) {
       printTerminalOutput("MISSION COMPLETE!", true);
       printTerminalHighlight(`★ Congratulations! You successfully completed Mission ${activeMission}! ★`);
 
-      // 2. Use window.saveProgress (from progress.js) to mark mission complete
+      // 2. Record mission completion and trigger progress updates
       if (typeof window !== 'undefined') {
-        if (typeof window.getProgress === 'function' && typeof window.saveProgress === 'function') {
-          const progress = window.getProgress();
+        if (typeof window.recordMissionCompleted === 'function') {
+          window.recordMissionCompleted(activeMission);
+        } else if (typeof window.ProgressManager !== 'undefined' && typeof window.ProgressManager.recordMissionCompleted === 'function') {
+          window.ProgressManager.recordMissionCompleted(activeMission);
+        } else if (typeof window.saveProgress === 'function') {
+          const progress = (typeof window.getProgress === 'function')
+            ? window.getProgress()
+            : { commandsPracticed: [], missionsCompleted: [] };
           if (!progress.missionsCompleted.includes(activeMission)) {
             progress.missionsCompleted.push(activeMission);
           }
@@ -841,17 +847,12 @@ function validateMissionStep(trimmedInput, rawInput, result) {
             progress.currentMission = Math.min(activeMission + 1, 4);
           }
           window.saveProgress(progress);
-        } else if (typeof window.saveProgress === 'function') {
-          window.saveProgress({
-            missionsCompleted: [activeMission],
-            currentMission: Math.min(activeMission + 1, 4)
-          });
         }
 
-        // Also call recordMissionCompleted if available
-        if (typeof window.recordMissionCompleted === 'function') {
-          window.recordMissionCompleted(activeMission);
-        }
+        // Dispatch missionSuccess event so all subscribers and progress bar listeners react
+        window.dispatchEvent(new CustomEvent('missionSuccess', {
+          detail: { missionNo: activeMission }
+        }));
       }
 
       // 3. Update top banner to show completion

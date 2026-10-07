@@ -120,10 +120,27 @@ function renderCommandList(moduleNo, commands) {
 
         button.type = 'button';
         button.className = 'command-item';
-
-        button.textContent = command.name;
-
         button.dataset.commandId = command.id;
+        button.dataset.commandName = command.name;
+
+        const isDone = (typeof isCommandCompleted === 'function')
+            ? isCommandCompleted(command.name)
+            : (typeof window.isCommandCompleted === 'function' && window.isCommandCompleted(command.name));
+
+        if (isDone) {
+            button.classList.add('completed');
+        }
+
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = command.name;
+        button.appendChild(nameSpan);
+
+        if (isDone) {
+            const checkSpan = document.createElement('span');
+            checkSpan.className = 'command-check';
+            checkSpan.textContent = '✓';
+            button.appendChild(checkSpan);
+        }
 
         button.addEventListener('click', () => {
 
@@ -400,15 +417,23 @@ function renderCommand(command) {
         </section>
 
 
-        <!-- LAB BUTTON -->
+        <!-- ACTION BUTTONS: TRY IN LAB & MARK AS COMPLETE -->
 
         <div class="try-lab">
 
             <a
-                class="neo-btn"
+                class="neo-btn btn-try-lab"
                 href="${APP_CONTEXT}/lab.jsp?mode=guided&mission=${mission}">
                 TRY IT IN THE LAB →
             </a>
+
+            <button
+                type="button"
+                id="btn-mark-complete"
+                class="neo-btn btn-mark-complete ${(typeof isCommandCompleted === 'function' ? isCommandCompleted(name) : (typeof window.isCommandCompleted === 'function' && window.isCommandCompleted(name))) ? 'completed' : ''}"
+                data-command-name="${escapeAttribute(name)}">
+                ${(typeof isCommandCompleted === 'function' ? isCommandCompleted(name) : (typeof window.isCommandCompleted === 'function' && window.isCommandCompleted(name))) ? '✓ COMPLETED' : 'MARK AS COMPLETE'}
+            </button>
 
         </div>
 
@@ -416,9 +441,64 @@ function renderCommand(command) {
 
 
     /*
-     * Activate copy buttons after inserting HTML.
+     * Activate copy buttons and mark complete button after inserting HTML.
      */
     attachCopyButtons();
+    attachMarkCompleteButton(name);
+}
+
+
+/* ============================================================
+   MARK AS COMPLETE BUTTON & SIDEBAR SYNC
+   ============================================================ */
+
+function attachMarkCompleteButton(commandName) {
+    const markBtn = document.getElementById('btn-mark-complete');
+    if (!markBtn) return;
+
+    markBtn.addEventListener('click', () => {
+        let isNowCompleted = false;
+        if (typeof toggleCommandCompleted === 'function') {
+            isNowCompleted = toggleCommandCompleted(commandName);
+        } else if (typeof window.toggleCommandCompleted === 'function') {
+            isNowCompleted = window.toggleCommandCompleted(commandName);
+        } else if (typeof window.ProgressManager !== 'undefined' && typeof window.ProgressManager.toggleCommandCompleted === 'function') {
+            isNowCompleted = window.ProgressManager.toggleCommandCompleted(commandName);
+        }
+
+        if (isNowCompleted) {
+            markBtn.classList.add('completed');
+            markBtn.textContent = '✓ COMPLETED';
+        } else {
+            markBtn.classList.remove('completed');
+            markBtn.textContent = 'MARK AS COMPLETE';
+        }
+
+        updateSidebarCommandBadges(commandName, isNowCompleted);
+    });
+}
+
+function updateSidebarCommandBadges(commandName, isCompleted) {
+    document.querySelectorAll('.command-item').forEach((item) => {
+        const itemCmd = item.dataset.commandName;
+        if (itemCmd && itemCmd.trim().toLowerCase() === commandName.trim().toLowerCase()) {
+            if (isCompleted) {
+                item.classList.add('completed');
+                if (!item.querySelector('.command-check')) {
+                    const checkSpan = document.createElement('span');
+                    checkSpan.className = 'command-check';
+                    checkSpan.textContent = '✓';
+                    item.appendChild(checkSpan);
+                }
+            } else {
+                item.classList.remove('completed');
+                const check = item.querySelector('.command-check');
+                if (check) {
+                    check.remove();
+                }
+            }
+        }
+    });
 }
 
 
